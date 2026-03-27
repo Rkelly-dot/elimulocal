@@ -1,0 +1,83 @@
+{{define "content"}}
+
+<section class="hero">
+    <h1>Find study materials you actually need</h1>
+    <p>Notes, past papers and textbooks — shared by students, for students.</p>
+
+    <form action="/" method="GET">
+        <input
+            type="text"
+            name="search"
+            placeholder="Search by course, title or keyword..."
+        >
+        
+        <input
+            type="text"
+            name="university"
+            list="uni-list"
+            placeholder="Filter by university..."
+        > 
+
+        <datalist id="uni-list">
+            {{range .Universities}}
+            <option value="{{.}}">
+            {{end}}
+        </datalist>
+        <button type="submit">Search</button>
+    </form>
+</section>
+
+<section class="resources">
+     <h2>Available Resources ({{len .Resources}} found)</h2>
+
+    {{if .Resources}}
+        {{range .Resources}}
+        <div class="card">
+            <span class="tag">{{.Category}}</span>
+            <h3>{{.Title}}</h3>
+            <p>{{.Description}}</p>
+            <div class="card-meta">
+                <span>🎓 {{.University}}</span>
+                <span>📖 {{.Course}}</span>
+                <span>👤 {{.UploadedBy}}</span>
+            </div>
+            <div class="card-footer">
+                <span>📅 {{.UploadedAt}}</span>
+                <a href="/download/{{.ID}}" class="download-btn">Download</a>
+            </div>
+        </div>
+        {{end}}
+    {{else}}
+        <div class="empty">
+            <p>No resources found. Be the first to share something!</p>
+            <a href="/upload">+ Share a Resource</a>
+        </div>
+    {{end}}
+</section>
+
+{{end}} <h2>Available Resources ({{len .Resources}} found)</h2>
+
+    {{if .Resources}}
+        {{range .Resources}}
+        <div class="card">
+            <span class="tag">{{.Category}}</span>
+            <h3>{{.Title}}</h3>
+            <p>{{.Description}}</p>
+            <div class="card-meta">
+                <span>🎓 {{.University}}</span>
+                <span>📖 {{.Course}}</span>
+                <span>👤 {{.UploadedBy}}</span>
+            </div>
+            <div class="card-footer">
+                <span>📅 {{.UploadedAt}}</span>
+                <a href="/download/{{.ID}}" class="download-btn">Download</a>
+            </div>
+        </div>
+        {{end}}
+    {{else}}
+        <div class="empty">
+            <p>No resources found. Be the first to share something!</p>
+            <a href="/upload">+ Share a Resource</a>
+        </div>
+    {{end}}
+</section>

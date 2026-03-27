@@ -1,0 +1,18 @@
+nano .gitignore
+```
+
+Add this:
+```
+# Compiled Go binary
+elimulocal
+
+# Uploaded PDF files (these should not go to Git)
+uploads/*
+!uploads/.gitkeep
+
+# Database file (we add this in Step 3)
+*.db
+
+Make sure this line is in there:
+```
+!**/.gitkeep       

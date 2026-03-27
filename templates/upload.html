@@ -1,0 +1,68 @@
+{{define "content"}}
+
+<section class="upload-section">
+    <a href="/" class="back-link">← Back to Browse</a>
+    <h1>Share a Resource</h1>
+    <p>Help a fellow student by sharing your notes or past papers.</p>
+
+    <!-- Show an error message if Go sends one -->
+    {{if .Message}}
+    <div class="alert">{{.Message}}</div>
+    {{end}}
+
+    <!-- method="POST" means the form data is sent to Go securely in the request body -->
+    <!-- enctype is required when uploading files -->
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+
+        <label>Resource Title *
+            <input type="text" name="title" placeholder="e.g. Data Structures Full Notes" required>
+        </label>
+
+        <label>Course / Subject *
+            <input type="text" name="course" placeholder="e.g. Computer Science" required>
+        </label>
+
+        <label>University *
+            <input
+                type="text"
+                name="university"
+                list="uni-suggestions"
+                placeholder="Type your university name..."
+                required
+            >
+            <datalist id="uni-suggestions">
+                {{range .Universities}}
+                <option value="{{.}}">
+                {{end}}
+            </datalist>
+        </label>
+
+        <label>Category *
+            <select name="category" required>
+                <option value="Notes">Notes</option>
+                <option value="Past Paper">Past Paper</option>
+                <option value="Textbook">Textbook</option>
+                <option value="Summary">Summary Sheet</option>
+                <option value="Other">Other</option>
+            </select>
+        </label>
+
+        <label>Description
+            <textarea name="description" rows="3" placeholder="Briefly describe what is in this resource..."></textarea>
+        </label>
+
+        <label>Your Name (optional)
+            <input type="text" name="uploader" placeholder="e.g. Brian K.">
+        </label>
+
+        <!-- FILE INPUT — this is the actual PDF upload field -->
+        <label>Upload File (PDF) *
+            <input type="file" name="file" accept=".pdf" required>
+        </label>
+
+        <button type="submit">📤 Share Resource</button>
+
+    </form>
+</section>
+
+{{end}}
