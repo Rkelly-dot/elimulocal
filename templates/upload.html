@@ -5,13 +5,10 @@
     <h1>Share a Resource</h1>
     <p>Help a fellow student by sharing your notes or past papers.</p>
 
-    <!-- Show an error message if Go sends one -->
     {{if .Message}}
     <div class="alert">{{.Message}}</div>
     {{end}}
 
-    <!-- method="POST" means the form data is sent to Go securely in the request body -->
-    <!-- enctype is required when uploading files -->
     <form action="/upload" method="POST" enctype="multipart/form-data">
 
         <label>Resource Title *
@@ -55,7 +52,6 @@
             <input type="text" name="uploader" placeholder="e.g. Brian K.">
         </label>
 
-        <!-- FILE INPUT — this is the actual PDF upload field -->
         <label>Upload File (PDF) *
             <input type="file" name="file" accept=".pdf" required>
         </label>

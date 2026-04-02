@@ -1,79 +1,235 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 type Resource struct {
-	ID			int
-	Title		string
-	Course		string
-	University	string
-	Category	string
-	Description	string
-	UploadedBy	string
-	UploadedAt	string
-	FileName	string
-	Downloads	int
+	ID          int
+	Title       string
+	Course      string
+	University  string
+	Category    string
+	Description string
+	UploadedBy  string
+	UploadedAt  string
+	FileName    string
+	Downloads   int
 }
+
 type PageData struct {
-	Title			string
-	Resources		[]Resource
-	Universities	[]string
-	Message			string
+	Title        string
+	Resources    []Resource
+	Universities []string
+	Message      string
 }
 
-var resources = []Resource{
-	{
-		ID:          1,
-		Title:       "Introduction to Data Structures - Full Notes",
-		Course:      "Computer Science",
-		University:  "University of Nairobi",
-		Category:    "Notes",
-		Description: "Covers arrays, linked lists, stacks, queues and trees.",
-		UploadedBy:  "Alice M.",
-		UploadedAt:  "2025-03-01",
-		FileName:    "",
-		Downloads:   0,
-	},
-	{
-		ID:          2,
-		Title:       "Principles of Economics - Chapter Summaries",
-		Course:      "Economics",
-		University:  "Strathmore University",
-		Category:    "Notes",
-		Description: "Clear summaries of micro and macroeconomics fundamentals.",
-		UploadedBy:  "David O.",
-		UploadedAt:  "2025-03-10",
-		FileName:    "",
-		Downloads:   0,
-	},
+var db *sql.DB
+
+func initDB() {
+	var err error
+
+	db, err = sql.Open("sqlite", "elimulocal.db")
+	if err != nil {
+		log.Fatal("Could not open database:", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Could not connect to database:", err)
+	}
+
+	createTable := `
+	CREATE TABLE IF NOT EXISTS resources (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		title       TEXT NOT NULL,
+		course      TEXT NOT NULL,
+		university  TEXT NOT NULL,
+		category    TEXT NOT NULL,
+		description TEXT,
+		uploaded_by TEXT,
+		uploaded_at TEXT,
+		file_name   TEXT,
+		downloads   INTEGER DEFAULT 0
+	);`
+
+	_, err = db.Exec(createTable)
+	if err != nil {
+		log.Fatal("Could not create table:", err)
+	}
+
+	seedDB()
+
+	fmt.Println("Database ready — elimulocal.db")
 }
 
-var nextID = 3
+func seedDB() {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
+	if err != nil {
+		log.Fatal("Could not count resources:", err)
+	}
+
+	if count > 0 {
+		return
+	}
+
+	seeds := []Resource{
+		{
+			Title:       "Introduction to Data Structures - Full Notes",
+			Course:      "Computer Science",
+			University:  "University of Nairobi",
+			Category:    "Notes",
+			Description: "Covers arrays, linked lists, stacks, queues and trees.",
+			UploadedBy:  "Alice M.",
+			UploadedAt:  "2025-03-01",
+			FileName:    "",
+		},
+		{
+			Title:       "Principles of Economics - Chapter Summaries",
+			Course:      "Economics",
+			University:  "Strathmore University",
+			Category:    "Notes",
+			Description: "Clear summaries of micro and macroeconomics fundamentals.",
+			UploadedBy:  "David O.",
+			UploadedAt:  "2025-03-10",
+			FileName:    "",
+		},
+	}
+
+	for _, s := range seeds {
+		saveResource(s)
+	}
+
+	fmt.Println("Seed data added to database.")
+}
+
+func saveResource(r Resource) error {
+	query := `
+	INSERT INTO resources (title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`
+
+	_, err := db.Exec(query,
+		r.Title,
+		r.Course,
+		r.University,
+		r.Category,
+		r.Description,
+		r.UploadedBy,
+		r.UploadedAt,
+		r.FileName,
+	)
+	return err
+}
+
+func getResources(search, university string) ([]Resource, error) {
+	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads FROM resources"
+
+	var args []interface{}
+	var conditions []string
+
+	if search != "" {
+		conditions = append(conditions, "(title LIKE ? OR course LIKE ? OR description LIKE ?)")
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
+	}
+
+	if university != "" {
+		conditions = append(conditions, "university = ?")
+		args = append(args, university)
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	query += " ORDER BY id DESC"
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var resources []Resource
+	for rows.Next() {
+		var r Resource
+		err := rows.Scan(
+			&r.ID,
+			&r.Title,
+			&r.Course,
+			&r.University,
+			&r.Category,
+			&r.Description,
+			&r.UploadedBy,
+			&r.UploadedAt,
+			&r.FileName,
+			&r.Downloads,
+		)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, r)
+	}
+
+	return resources, nil
+}
+
+func getUniversities() []string {
+	rows, err := db.Query("SELECT DISTINCT university FROM resources ORDER BY university")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var unis []string
+	for rows.Next() {
+		var u string
+		rows.Scan(&u)
+		unis = append(unis, u)
+	}
+	return unis
+}
+
+func incrementDownloads(id int) {
+	db.Exec("UPDATE resources SET downloads = downloads + 1 WHERE id = ?", id)
+}
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
+
 	search := r.URL.Query().Get("search")
 	university := r.URL.Query().Get("university")
 
-	filtered := filterResources(search, university)
+	resources, err := getResources(search, university)
+	if err != nil {
+		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	data := PageData{
 		Title:        "ElimuLocal - Browse Study Materials",
-		Resources:    filtered,
+		Resources:    resources,
 		Universities: getUniversities(),
 	}
+
 	renderTemplate(w, "home.html", data)
 }
+
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		data := PageData{
@@ -83,8 +239,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "upload.html", data)
 		return
 	}
+
 	if r.Method == "POST" {
-		
 		title := strings.TrimSpace(r.FormValue("title"))
 		course := strings.TrimSpace(r.FormValue("course"))
 		university := strings.TrimSpace(r.FormValue("university"))
@@ -95,6 +251,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		if uploader == "" {
 			uploader = "Anonymous"
 		}
+
 		if title == "" || course == "" || university == "" {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
@@ -104,7 +261,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			renderTemplate(w, "upload.html", data)
 			return
 		}
-		_, _, err := r.FormFile("file")
+
+		err := r.ParseMultipartForm(10 << 20)
+		if err != nil {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "File too large. Maximum size is 10MB.",
+				Universities: getUniversities(),
+			}
+			renderTemplate(w, "upload.html", data)
+			return
+		}
+
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
@@ -114,8 +283,46 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			renderTemplate(w, "upload.html", data)
 			return
 		}
+		defer file.Close()
+
+		ext := strings.ToLower(filepath.Ext(header.Filename))
+		if ext != ".pdf" {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "Only PDF files are allowed.",
+				Universities: getUniversities(),
+			}
+			renderTemplate(w, "upload.html", data)
+			return
+		}
+
+		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
+		filePath := filepath.Join("uploads", fileName)
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "Could not save file. Please try again.",
+				Universities: getUniversities(),
+			}
+			renderTemplate(w, "upload.html", data)
+			return
+		}
+		defer dst.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "Could not save file. Please try again.",
+				Universities: getUniversities(),
+			}
+			renderTemplate(w, "upload.html", data)
+			return
+		}
+
 		newResource := Resource{
-			ID:          nextID,
 			Title:       title,
 			Course:      course,
 			University:  university,
@@ -123,59 +330,60 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			Description: description,
 			UploadedBy:  uploader,
 			UploadedAt:  time.Now().Format("2006-01-02"),
-
-			FileName: "",
-			Downloads: 0,
+			FileName:    fileName,
 		}
-		resources = append(resources, newResource)
-		nextID++
+
+		err = saveResource(newResource)
+		if err != nil {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "Could not save resource. Please try again.",
+				Universities: getUniversities(),
+			}
+			renderTemplate(w, "upload.html", data)
+			return
+		}
+
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 }
-func filterResources(search, university string) []Resource {
-	if search == "" && university == "" {
-		return resources
+
+func downloadHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/download/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
 	}
 
-	var filtered []Resource
+	var fileName string
+	var title string
+	err := db.QueryRow(
+		"SELECT file_name, title FROM resources WHERE id = ?", idStr,
+	).Scan(&fileName, &title)
 
-	for _, r := range resources {
-
-		matchesSearch := true
-		matchesUniversity :=true
-
-		if search != "" {
-			s := strings.ToLower(search)
-			matchesSearch = strings.Contains(strings.ToLower(r.Title), s) ||
-				strings.Contains(strings.ToLower(r.Course), s) ||
-				strings.Contains(strings.ToLower(r.Description), s)
-		}
-		if university != "" {
-			matchesUniversity = strings.EqualFold(r.University, university)
-		}
-		if matchesSearch && matchesUniversity {
-			filtered = append(filtered, r)
-		}
+	if err != nil {
+		http.NotFound(w, r)
+		return
 	}
 
-	return filtered
+	if fileName == "" {
+		http.Error(w, "No file available for this resource yet.", http.StatusNotFound)
+		return
+	}
+
+	filePath := filepath.Join("uploads", fileName)
+
+	var id int
+	fmt.Sscan(idStr, &id)
+	incrementDownloads(id)
+
+	w.Header().Set("Content-Disposition", "attachment; filename="+title+".pdf")
+	w.Header().Set("Content-Type", "application/pdf")
+
+	http.ServeFile(w, r, filePath)
 }
-func getUniversities() []string {
-	seen := make(map[string]bool)
 
-	var unis []string
-
-	for _, r := range resources {
-		name := strings.TrimSpace(r.University)
-		if name != "" && !seen[name] {
-			seen[name] = true
-			unis = append(unis, name)
-		}
-	}
-
-	return unis
-}
 func renderTemplate(w http.ResponseWriter, page string, data PageData) {
 	tmpl, err := template.ParseFiles("templates/base.html", "templates/"+page)
 	if err != nil {
@@ -187,12 +395,16 @@ func renderTemplate(w http.ResponseWriter, page string, data PageData) {
 		http.Error(w, "Could not render page: "+err.Error(), http.StatusInternalServerError)
 	}
 }
+
 func main() {
+	initDB()
+
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/upload", uploadHandler)
+	http.HandleFunc("/download/", downloadHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
@@ -200,6 +412,3 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
-
-
