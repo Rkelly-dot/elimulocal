@@ -1,3 +1,24 @@
+@font-face {
+    font-family: 'Sora';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/Sora-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Sora';
+    font-style: normal;
+    font-weight: 600;
+    src: url('/static/fonts/Sora-SemiBold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Space Mono';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/fonts/SpaceMono-Regular.woff2') format('woff2');
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -17,7 +38,7 @@
     --shadow:      0 2px 12px rgba(0,0,0,0.07);
 }
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Sora', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;

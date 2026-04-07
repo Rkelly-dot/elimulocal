@@ -99,3 +99,97 @@ resources survive server restarts.
 - `CREATE TABLE` — create the resources table once at startup
 - `INSERT INTO` — save a new resource when someone uploads
 - `SELECT` — read resources when someone browses or searches
+## Step 3 — SQLite database and file uploads
+**Date:** April 2025
+**Branch:** feature/initial-setup
+
+### What we built
+- Added SQLite database using `modernc.org/sqlite` package
+- Created `resources` table with all fields
+- Replaced in-memory slice with real database reads and writes
+- Real PDF file uploads — files saved to uploads/ folder on disk
+- Real file downloads — students can download uploaded PDFs
+- Download counter increments every time a file is downloaded
+- Seed data added automatically on first run
+- Data survives server restarts permanently
+
+### New functions added to main.go
+- `initDB()` — opens database connection and creates table
+- `seedDB()` — adds starter data if database is empty
+- `saveResource()` — inserts a new resource row into the database
+- `getResources()` — reads and filters resources from the database
+- `getUniversities()` — reads unique university names from the database
+- `incrementDownloads()` — updates download count when file is downloaded
+- `downloadHandler()` — serves PDF files to the browser
+
+### SQL commands learned
+- `CREATE TABLE IF NOT EXISTS` — creates table safely on every startup
+- `INSERT INTO ... VALUES (?, ?, ...)` — adds a new row
+- `SELECT ... FROM ... WHERE ... LIKE ?` — reads and filters rows
+- `SELECT DISTINCT` — returns unique values only
+- `UPDATE ... SET ... WHERE` — modifies an existing row
+- `SELECT COUNT(*)` — counts rows in a table
+- `ORDER BY id DESC` — sorts newest first
+
+### Key decisions
+- Used `modernc.org/sqlite` — pure Go driver, no C compiler needed
+- Used `?` placeholders in all SQL queries — prevents SQL injection
+- Used `time.Now().UnixNano()` for unique filenames — prevents overwrites
+- Used `io.Copy()` for file saving — handles large files without loading
+  them entirely into memory
+- Used `defer rows.Close()` and `defer file.Close()` — ensures cleanup
+  always happens even if an error occurs
+
+### Go concepts introduced
+- Blank import `_ "modernc.org/sqlite"` — runs init without direct use
+- `database/sql` package — Go's standard database interface
+- `db.Exec()` — runs SQL that does not return rows
+- `db.Query()` — runs SQL that returns multiple rows
+- `db.QueryRow()` — runs SQL that returns exactly one row
+- `rows.Scan()` — reads a database row into Go variables
+- `&variable` — passing a pointer so Scan can write into the variable
+- `defer` — guarantees cleanup code runs when a function ends
+- `r.ParseMultipartForm()` — prepares Go to handle file uploads
+- `r.FormFile()` — retrieves an uploaded file from the request
+- `os.Create()` — creates a new file on disk
+- `io.Copy()` — copies data from one stream to another
+- `filepath.Join()` — builds file paths correctly for the OS
+- `filepath.Ext()` — gets the file extension
+- `10 << 20` — bitwise shift used to express 10MB in bytes
+## Step 4 — Local fonts
+**Date:** April 2025
+**Branch:** feature/initial-setup
+
+### What we built
+- Downloaded Sora (Regular and SemiBold) and Space Mono font files
+- Added @font-face rules to style.css to load fonts from local disk
+- Removed Google Fonts dependency completely
+- App now works with zero internet connection on campus LAN
+
+### Why this matters
+- Students on campus WiFi with no internet can still use the full app
+- No external requests means faster load times on slow networks
+- No dependency on Google's servers being available
+
+---
+
+## Month 1 — COMPLETE
+**Date:** April 2025
+
+### Month 1 checklist
+- [x] Project setup and folder structure
+- [x] HTML templates and CSS styling
+- [x] Dynamic university list
+- [x] SQLite database
+- [x] Real file uploads
+- [x] Real file downloads
+- [x] Local fonts — no internet dependency
+
+### What ElimuLocal can do at end of Month 1
+- Run on a campus LAN with no internet
+- Accept PDF uploads from teachers and students
+- Store resources permanently in a database
+- Serve files for download
+- Search and filter resources
+- Auto-populate university suggestions
+- Look like a real product with custom fonts and styling
