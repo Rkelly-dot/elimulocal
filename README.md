@@ -228,10 +228,10 @@ explained with comments in the code. Here is a quick map:
 - [x] Project setup and folder structure
 - [x] HTML templates and CSS styling
 - [x] Dynamic university list (no hardcoding)
-- [ ] SQLite database — resources persist after restart
-- [ ] Real file uploads — accept and save PDFs
-- [ ] Real file downloads — serve saved PDFs
-- [ ] Embed fonts locally — no internet needed
+- [x] SQLite database — resources persist after restart
+- [x] Real file uploads — accept and save PDFs
+- [x] Real file downloads — serve saved PDFs
+- [x] Embed fonts locally — no internet needed
 
 ### Month 2 — Real users
 - [ ] Deploy on campus LAN with real students
