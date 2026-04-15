@@ -5,10 +5,12 @@
     <p>Notes, past papers and textbooks — shared by students, for students.</p>
 
     <form action="/" method="GET">
+        <div class="search-row">
         <input
             type="text"
             name="search"
             placeholder="Search by course, title or keyword..."
+            value="{{.Search}}"
         >
         
         <input
@@ -16,6 +18,7 @@
             name="university"
             list="uni-list"
             placeholder="Filter by university..."
+            value="{{.University}}"
         > 
 
         <datalist id="uni-list">
@@ -23,13 +26,33 @@
             <option value="{{.}}">
             {{end}}
         </datalist>
+
+         <select name="category">
+            <option value="">All Categories</option>
+            <option value="Notes"      {{if eq .Category "Notes"}}selected{{end}}>Notes</option>
+            <option value="Past Paper" {{if eq .Category "Past Paper"}}selected{{end}}>Past Paper</option>
+            <option value="Textbook"   {{if eq .Category "Textbook"}}selected{{end}}>Textbook</option>
+            <option value="Summary"    {{if eq .Category "Summary"}}selected{{end}}>Summary</option>
+            <option value="Other"      {{if eq .Category "Other"}}selected{{end}}>Other</option>
+        </select>
+
+         <select name="sort">
+            <option value="newest" {{if eq .Sort "newest"}}selected{{end}}>Newest first</option>
+            <option value="popular" {{if eq .Sort "popular"}}selected{{end}}>Most downloaded</option>
+            <option value="oldest" {{if eq .Sort "oldest"}}selected{{end}}>Oldest first</option>
+        </select>
+    
         <button type="submit">Search</button>
+        </div>
     </form>
-</section>
 
 <section class="resources">
-     <h2>Available Resources ({{len .Resources}} found)</h2>
-
+     <div class="results-header">
+    <h2>Available Resources <span class="count-badge">{{len .Resources}} found</span></h2>
+    {{if or .Search .University .Category}}
+    <a href="/" class="clear-link">✕ Clear filters</a>
+    {{end}}
+</div>
     {{if .Resources}}
         {{range .Resources}}
         <div class="card">
