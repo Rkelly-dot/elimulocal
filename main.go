@@ -33,6 +33,10 @@ type PageData struct {
 	Resources    []Resource
 	Universities []string
 	Message      string
+	Search       string
+	University   string
+	Category     string
+	Sort         string
 }
 
 var db *sql.DB
@@ -133,7 +137,7 @@ func saveResource(r Resource) error {
 	return err
 }
 
-func getResources(search, university string) ([]Resource, error) {
+func getResources(search, university, category, sort string) ([]Resource, error) {
 	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads FROM resources"
 
 	var args []interface{}
@@ -150,12 +154,23 @@ func getResources(search, university string) ([]Resource, error) {
 		args = append(args, university)
 	}
 
+	if category != "" {
+		conditions = append(conditions, "category = ?")
+		args = append(args, category)
+	}
+
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
-
-	query += " ORDER BY id DESC"
-
+	switch sort {
+	case "popular":
+		query += " ORDER BY downloads DESC"
+	case "oldest":
+		query += " ORDER BY id ASC"
+	default:
+		query += " ORDER BY id DESC"
+	}
+	
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -214,8 +229,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 	search := r.URL.Query().Get("search")
 	university := r.URL.Query().Get("university")
+	category := r.URL.Query().Get("category")
+	sort := r.URL.Query().Get("sort")
 
-	resources, err := getResources(search, university)
+	resources, err := getResources(search, university, category, sort)
 	if err != nil {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -225,6 +242,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		Title:        "ElimuLocal - Browse Study Materials",
 		Resources:    resources,
 		Universities: getUniversities(),
+		Search:       search,
+		University:   university,
+		Category:     category,
+		Sort:         sort,
 	}
 
 	renderTemplate(w, "home.html", data)
