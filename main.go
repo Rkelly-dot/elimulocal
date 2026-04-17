@@ -26,6 +26,7 @@ type Resource struct {
 	UploadedAt  string
 	FileName    string
 	Downloads   int
+	upvotes	 	int
 }
 
 type PageData struct {
@@ -79,6 +80,7 @@ func initDB() {
 }
 
 func seedDB() {
+	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0")
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
 	if err != nil {
@@ -220,6 +222,36 @@ func getUniversities() []string {
 func incrementDownloads(id int) {
 	db.Exec("UPDATE resources SET downloads = downloads + 1 WHERE id = ?", id)
 }
+
+func upvoteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idStr := strings.TrimPrefix(r.URL.Path, "/upvote/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err := incrementUpvotes(id)
+	if err != nil {
+		http.Error(w, "Could not upvote resource", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)
+}
+
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -426,6 +458,7 @@ func main() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
+	http.HandleFunc("/upvote/", upvoteHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
