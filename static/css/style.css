@@ -424,6 +424,31 @@ footer {
     color: var(--red);
     border-color: var(--red);
 }
+/* ---- CARD ACTIONS ---- */
+.card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.upvote-btn {
+    background: var(--white);
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.upvote-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-light);
+}
 @media (max-width: 640px) {
     .hero h1 {
         font-size: 1.6rem;

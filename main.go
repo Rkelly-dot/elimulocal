@@ -26,7 +26,7 @@ type Resource struct {
 	UploadedAt  string
 	FileName    string
 	Downloads   int
-	upvotes	 	int
+	Upvotes    int
 }
 
 type PageData struct {
@@ -195,7 +195,7 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 			&r.UploadedAt,
 			&r.FileName,
 			&r.Downloads,
-			&r.upvotes,
+			&r.Upvotes,
 		)
 		if err != nil {
 			return nil, err
@@ -226,11 +226,13 @@ func incrementDownloads(id int) {
 	db.Exec("UPDATE resources SET downloads = downloads + 1 WHERE id = ?", id)
 }
 
+func incrementUpvotes(id int) error {
+	_, err := db.Exec("UPDATE resources SET upvotes = upvotes + 1 WHERE id = ?", id)
+	return err
+}
+
 func upvoteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -252,7 +254,11 @@ func upvoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)
+	ref := r.Header.Get("Referer")
+	if ref == "" {
+		ref = "/"
+	}
+	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
 
 
