@@ -140,7 +140,7 @@ func saveResource(r Resource) error {
 }
 
 func getResources(search, university, category, sort string) ([]Resource, error) {
-	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads FROM resources"
+	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes FROM resources"
 
 	var args []interface{}
 	var conditions []string
@@ -167,6 +167,8 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 	switch sort {
 	case "popular":
 		query += " ORDER BY downloads DESC"
+	case "upvotes":
+	query += " ORDER BY upvotes DESC"
 	case "oldest":
 		query += " ORDER BY id ASC"
 	default:
@@ -193,6 +195,7 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 			&r.UploadedAt,
 			&r.FileName,
 			&r.Downloads,
+			&r.upvotes,
 		)
 		if err != nil {
 			return nil, err
