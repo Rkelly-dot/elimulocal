@@ -39,6 +39,7 @@
          <select name="sort">
             <option value="newest" {{if eq .Sort "newest"}}selected{{end}}>Newest first</option>
             <option value="popular" {{if eq .Sort "popular"}}selected{{end}}>Most downloaded</option>
+            <option value="upvotes" {{if eq .Sort "upvotes"}}selected{{end}}>Most helpful</option>
             <option value="oldest" {{if eq .Sort "oldest"}}selected{{end}}>Oldest first</option>
         </select>
     
@@ -94,14 +95,20 @@
             </div>
             <div class="card-footer">
                 <span>📅 {{.UploadedAt}}</span>
-                <a href="/download/{{.ID}}" class="download-btn">Download</a>
-            </div>
-        </div>
-        {{end}}
-    {{else}}
-        <div class="empty">
-            <p>No resources found. Be the first to share something!</p>
-            <a href="/upload">+ Share a Resource</a>
-        </div>
-    {{end}}
+                <div class="card-actions">
+                 <form action="/upvote/{{.ID}}" method="POST" style="display:inline">
+            <button type="submit" class="upvote-btn">
+                👍 Helpful ({{.Upvotes}})
+            </button>
+        </form>   
+        <a href="/download/{{.ID}}" class="download-btn">Download</a>
+    </div>
+</div>
+{{end}}
+{{else}}
+    <div class="empty">
+        <p>No resources found. Be the first to share something!</p>
+        <a href="/upload">+ Share a Resource</a>
+    </div>
+{{end}}
 </section>
