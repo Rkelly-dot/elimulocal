@@ -278,6 +278,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	message := ""
+	if r.URL.Query().Get("success") == "1" {
+    message = "✅ Resource uploaded successfully! Students can now find and download it."
+	}
 
 	data := PageData{
 		Title:        "ElimuLocal - Browse Study Materials",
@@ -287,6 +291,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		University:   university,
 		Category:     category,
 		Sort:         sort,
+		Message:      message,
 	}
 
 	renderTemplate(w, "home.html", data)
@@ -406,7 +411,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
 		return
 	}
 }
