@@ -449,6 +449,17 @@ footer {
     color: var(--green);
     background: var(--green-light);
 }
+/* ---- FLASH MESSAGE ---- */
+.flash-message {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+    padding: 14px 20px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
 @media (max-width: 640px) {
     .hero h1 {
         font-size: 1.6rem;

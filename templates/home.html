@@ -49,6 +49,23 @@
 </section>
 
 <section class="resources">
+    {{if .Message}}
+<div class="flash-message" id="flash">
+    {{.Message}}
+</div>
+<script>
+    setTimeout(function() {
+        var flash = document.getElementById('flash');
+        if (flash) {
+            flash.style.transition = 'opacity 1s';
+            flash.style.opacity = '0';
+            setTimeout(function() {
+                flash.style.display = 'none';
+            }, 1000);
+        }
+    }, 4000);
+</script>
+{{end}}
      <div class="results-header">
     <h2>Available Resources <span class="count-badge">{{len .Resources}} found</span></h2>
     {{if or .Search .University .Category}}
