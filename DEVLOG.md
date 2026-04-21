@@ -193,3 +193,188 @@ resources survive server restarts.
 - Search and filter resources
 - Auto-populate university suggestions
 - Look like a real product with custom fonts and styling
+
+Step 7 — Improved search and filtering
+Date: April 2025
+Branch: feature/month2-improvements
+What we built
+
+Added category filter dropdown to the search form
+(All Categories / Notes / Past Paper / Textbook / Summary / Other)
+Added sort dropdown to the search form
+(Newest first / Most downloaded / Most helpful / Oldest first)
+Dropdowns remember their selected value after form submission
+Added "✕ Clear filters" link that appears when any filter is active
+Added count badge showing how many results were found
+Updated getResources() to accept category and sort parameters
+Updated PageData struct with Search, University, Category, Sort fields
+
+Key decisions
+
+Used {{if eq .Category "Notes"}}selected{{end}} pattern to keep
+dropdowns showing the active filter after search — without this the
+dropdown resets every time which is very annoying UX
+Used a switch statement for sort order — cleaner than if/else chain
+Used LIKE ? with %search% pattern for partial text matching in SQL
+
+Go concepts introduced
+
+switch statement — cleaner alternative to multiple if/else blocks
+Building SQL queries dynamically — appending WHERE clauses conditionally
+[]interface{} — slice that can hold values of any type, used for
+SQL query arguments when we do not know how many there will be
+
+SQL concepts introduced
+
+LIKE '%keyword%' — partial text matching (% is a wildcard)
+ORDER BY column ASC/DESC — sorting results
+ORDER BY downloads DESC — sort by most downloaded first
+
+
+Step 8 — Ratings and upvotes
+Date: April 2025
+Branch: feature/month2-improvements
+What we built
+
+Added upvotes column to the resources table using ALTER TABLE
+Added 👍 Helpful (count) button to every resource card
+Clicking the button increments the upvote count in the database
+Added "Most helpful" sort option to show most upvoted resources first
+Added incrementUpvotes() function in main.go
+Added upvoteHandler to handle POST /upvote/{id} requests
+
+How the upvote flow works
+Student clicks 👍 Helpful
+    → browser sends POST /upvote/3
+    → upvoteHandler extracts ID from URL
+    → incrementUpvotes(3) runs UPDATE SQL
+    → redirects back to the page the student was on
+    → student sees updated count
+Key decisions
+
+Used ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0
+with _, _ = db.Exec(...) to safely add the column to an existing
+database — ignoring the error if the column already exists
+Used r.Header.Get("Referer") for redirect — sends student back to
+whatever page they were on, preserving their search filters
+Used POST not GET for upvoting — upvoting changes data so it must
+be a POST request, not a link
+
+Go concepts introduced
+
+ALTER TABLE for modifying existing database tables safely
+r.Header.Get("Referer") — reading the previous page URL from
+the request headers for smart redirects
+
+
+Step 9 — Download counter on cards
+Date: April 2025
+Branch: feature/month2-improvements
+What we built
+
+Display the download count on every resource card
+Counter was already being tracked in the database since Month 1 —
+this step simply surfaced the number in the UI
+
+What was learned
+This step was intentionally simple — it demonstrated that good data
+modelling pays off. Because we stored downloads in the database from
+day one, showing the count was a single line of HTML. No backend
+changes needed at all.
+
+Step 10 — Success and error flash messages
+Date: April 2025
+Branch: feature/month2-improvements
+What we built
+
+Green success message appears at top of homepage after upload:
+"✅ Resource uploaded successfully!"
+Message fades out automatically after 4 seconds using JavaScript
+Added deleted confirmation message for future delete feature
+Used URL query parameter ?success=1 to pass the message signal
+from the upload redirect to the home page
+
+How flash messages work
+1. Upload succeeds
+2. Go redirects to /?success=1
+3. homeHandler reads r.URL.Query().Get("success")
+4. Sets message in PageData
+5. home.html shows the message div
+6. JavaScript setTimeout fades it out after 4 seconds
+Key decisions
+
+Used URL query parameter instead of cookies or sessions — simpler
+and works without any session management infrastructure
+Used JavaScript for fade-out — CSS alone cannot remove an element
+after a time delay
+setTimeout with two nested calls — first fades opacity over 1
+second, then sets display:none after the fade completes
+
+JavaScript concepts introduced
+
+setTimeout(function, milliseconds) — run code after a delay
+element.style.transition — smooth CSS property changes via JS
+element.style.opacity — change transparency
+element.style.display = 'none' — hide element completely
+
+Step 11 — Campus LAN deployment
+Date: April 2025
+Branch: feature/month2-improvements
+What we did
+
+Found the laptop's local IP address using ip addr show
+Confirmed firewall was inactive (ufw status showed inactive)
+Started the server and shared the link with a real device
+Tested ElimuLocal on a phone over campus WiFi
+
+Result
+ElimuLocal loaded successfully on a phone at http://192.168.89.223:8080.
+All features worked on mobile — search, filter, browse, upload form.
+Minor navbar layout issue on small screens noted for Step 12.
+How campus LAN works
+Your laptop runs go run main.go
+    → Go listens on :8080 (all network interfaces)
+    → Campus router assigns your laptop IP 192.168.89.223
+    → Student phone connects to same WiFi
+    → Student opens http://192.168.89.223:8080
+    → Phone sends request across WiFi to your laptop
+    → Go responds with the ElimuLocal page
+    → No internet involved at any point
+Commands learned
+
+ip addr show | grep "inet " — find your local IP address
+sudo ufw status — check if the firewall is blocking connections
+
+Step 12-Fix mobile navbar layout
+Date: April 2025
+Branch: feature/month2-improvements
+what we did
+
+I patched the stylesheet to stop the brand from breaking and prevent the button overlap on screens
+Applied a small CSS patch by allowing wrapping and making the share button stack on very small screen.This helped keep the brand on one line and make the header responsive
+
+Result
+ElimuLocal ran successfully on a mobile phone and the navbar was not cramped
+
+Month 2
+Date: April 2025
+Month 2 checklist
+
+ Step 7  — Improved search with category filter and sort options
+ Step 8  — Upvote / helpful rating system
+ Step 9  — Download counter displayed on resource cards
+ Step 10 — Success flash messages after upload
+ Step 11 — Deployed on campus LAN, tested on real phone
+ Step 12 — Fix mobile navbar layout
+ Step 13 — Merge Month 2 into main branch
+
+What ElimuLocal can do at end of Month 2
+
+Filter resources by category (Notes, Past Paper, Textbook etc.)
+Sort resources by newest, most downloaded, most helpful, oldest
+Upvote helpful resources — community quality signal
+See download counts on every resource card
+Get clear feedback after uploading a resource
+Run live on a campus WiFi network accessible from any device
+Tested and working on a real Android phone
+
