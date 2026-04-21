@@ -26,6 +26,7 @@ type Resource struct {
 	UploadedAt  string
 	FileName    string
 	Downloads   int
+	Upvotes    int
 }
 
 type PageData struct {
@@ -33,6 +34,10 @@ type PageData struct {
 	Resources    []Resource
 	Universities []string
 	Message      string
+	Search       string
+	University   string
+	Category     string
+	Sort         string
 }
 
 var db *sql.DB
@@ -75,6 +80,7 @@ func initDB() {
 }
 
 func seedDB() {
+	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0")
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
 	if err != nil {
@@ -133,8 +139,8 @@ func saveResource(r Resource) error {
 	return err
 }
 
-func getResources(search, university string) ([]Resource, error) {
-	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads FROM resources"
+func getResources(search, university, category, sort string) ([]Resource, error) {
+	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes FROM resources"
 
 	var args []interface{}
 	var conditions []string
@@ -150,12 +156,25 @@ func getResources(search, university string) ([]Resource, error) {
 		args = append(args, university)
 	}
 
+	if category != "" {
+		conditions = append(conditions, "category = ?")
+		args = append(args, category)
+	}
+
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
-
-	query += " ORDER BY id DESC"
-
+	switch sort {
+	case "popular":
+		query += " ORDER BY downloads DESC"
+	case "upvotes":
+	query += " ORDER BY upvotes DESC"
+	case "oldest":
+		query += " ORDER BY id ASC"
+	default:
+		query += " ORDER BY id DESC"
+	}
+	
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -176,6 +195,7 @@ func getResources(search, university string) ([]Resource, error) {
 			&r.UploadedAt,
 			&r.FileName,
 			&r.Downloads,
+			&r.Upvotes,
 		)
 		if err != nil {
 			return nil, err
@@ -206,6 +226,42 @@ func incrementDownloads(id int) {
 	db.Exec("UPDATE resources SET downloads = downloads + 1 WHERE id = ?", id)
 }
 
+func incrementUpvotes(id int) error {
+	_, err := db.Exec("UPDATE resources SET upvotes = upvotes + 1 WHERE id = ?", id)
+	return err
+}
+
+func upvoteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	idStr := strings.TrimPrefix(r.URL.Path, "/upvote/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err := incrementUpvotes(id)
+	if err != nil {
+		http.Error(w, "Could not upvote resource", http.StatusInternalServerError)
+		return
+	}
+
+	ref := r.Header.Get("Referer")
+	if ref == "" {
+		ref = "/"
+	}
+	http.Redirect(w, r, ref, http.StatusSeeOther)
+}
+
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -214,17 +270,28 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 	search := r.URL.Query().Get("search")
 	university := r.URL.Query().Get("university")
+	category := r.URL.Query().Get("category")
+	sort := r.URL.Query().Get("sort")
 
-	resources, err := getResources(search, university)
+	resources, err := getResources(search, university, category, sort)
 	if err != nil {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+	message := ""
+	if r.URL.Query().Get("success") == "1" {
+    message = "✅ Resource uploaded successfully! Students can now find and download it."
 	}
 
 	data := PageData{
 		Title:        "ElimuLocal - Browse Study Materials",
 		Resources:    resources,
 		Universities: getUniversities(),
+		Search:       search,
+		University:   university,
+		Category:     category,
+		Sort:         sort,
+		Message:      message,
 	}
 
 	renderTemplate(w, "home.html", data)
@@ -344,7 +411,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
 		return
 	}
 }
@@ -405,6 +472,7 @@ func main() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
+	http.HandleFunc("/upvote/", upvoteHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
