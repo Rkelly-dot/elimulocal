@@ -27,13 +27,22 @@ func createUsersTable() {
 		email		  TEXT NOT NULL UNIQUE,
 		password_hash TEXT NOT NULL,
 		created_at`   TEXT NOT NULL
-	);
+	);`
 	`
 	_, err := db.Exec(query)
 	if err != nil {
 		panic("COuld not create users table: " + err.Error())
 	}
 }
-	
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	bytes, err := bcrypt.COmpareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
 
 
