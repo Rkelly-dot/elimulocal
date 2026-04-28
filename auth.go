@@ -2,9 +2,10 @@ package main
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gorilla/sessions"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,8 +40,8 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func CheckPasswordHash(password, hash string) bool {
-	bytes, err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+func CheckPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
@@ -106,8 +107,8 @@ func emailExists(email string) bool {
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
 	return count > 0
 }
-func registerHandler(w http.ResponseWriter, r *http.Request) {
 
+func registerHandler(w http.ResponseWriter, r *http.Request) {
 	_, loggedIn := getSessionUser(r)
 	if loggedIn {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -124,5 +125,86 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		confirm := r.FormValue("confirm")
 
-		
+		if username == "" || email == "" || password == "" {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Please fill in all fields.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+		if len(username) < 3 {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Username must be at least 3 characters.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
 
+		if len(password) < 8 {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Password must be at least 8 characters.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		if password != confirm {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Passwords do not match.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		if usernameExists(username) {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "That username is already taken.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		if emailExists(email) {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "That email is already registered.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		hash, err := hashPassword(password)
+		if err != nil {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Something went wrong. Please try again.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		result, err := db.Exec(
+			"INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+			username, email, hash, time.Now().Format("2006-01-02"),
+		)
+		if err != nil {
+			data := PageData{
+				Title:   "Register - ElimuLocal",
+				Message: "Could not create account. Please try again.",
+			}
+			renderTemplate(w, "register.html", data)
+			return
+		}
+
+		userID, _ := result.LastInsertId()
+		setSessionUser(w, r, int(userID))
+
+		http.Redirect(w, r, "/?success=registered", http.StatusSeeOther)
+		return
+	}
+}
