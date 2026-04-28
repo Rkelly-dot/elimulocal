@@ -85,3 +85,24 @@ func clearSession(w http.ResponseWriter, r *http.Request) {
 	session.Options.MaxAge = -1
 	session.Save(r, w)
 }
+
+func getUserByUsername(username string) (User, error) {
+	var u User
+	err := db.QueryRow(
+		"SELECT id, username, email, password_hash, created_at FROM users WHERE username = ?",
+		username,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.CreatedAt)
+	return u, err
+}
+
+func usernameExists(username string) bool {
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", username).Scan(&count)
+	return count > 0
+}
+
+func emailExists(email string) bool {
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
+	return count > 0
+}
