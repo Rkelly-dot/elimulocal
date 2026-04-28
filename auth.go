@@ -113,4 +113,16 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	
+	if r.Method == "GET" {
+		data := PageData{Title: "Register - ElimuLocal"}
+		renderTemplate(w, "register.html", data)
+		return
+	}
+	if r.Method == "POST" {
+		username := strings.TrimSpace(r.FormValue("username"))
+		email := strings.TrimSpace(r.FormValue("email"))
+		password := r.FormValue("password")
+		confirm := r.FormValue("confirm")
+
+		
+
