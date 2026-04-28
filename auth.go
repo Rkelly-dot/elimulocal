@@ -44,7 +44,7 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func getSession(r *http.Request) (User, bool) {
+func getSessionUser(r *http.Request) (User, bool) {
 	session, err := store.Get(r, "elimulocal-session")
 	if err != nil {
 		return User{}, false
@@ -106,3 +106,11 @@ func emailExists(email string) bool {
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
 	return count > 0
 }
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, loggedIn := getSessionUser(r)
+	if loggedIn {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	
