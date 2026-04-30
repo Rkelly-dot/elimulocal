@@ -234,13 +234,14 @@ explained with comments in the code. Here is a quick map:
 - [x] Embed fonts locally — no internet needed
 
 ### Month 2 — Real users
-- [ ] Deploy on campus LAN with real students
-- [ ] Improved search (filter by year, category)
-- [ ] Ratings / upvote system
-- [ ] Fix bugs from real student feedback
-- [ ] Download counter per resource
+- [x] Deploy on campus LAN with real students
+- [x] Improved search (filter by year, category)
+- [x] Ratings / upvote system
+- [x] Fix bugs from real student feedback
+- [x] Download counter per resource
 
 ### Month 3 — Polish and scale
+- [ ] Authentication(login and registration)
 - [ ] PDF preview in browser (no download needed)
 - [ ] Mobile-friendly improvements
 - [ ] Support multiple campuses
