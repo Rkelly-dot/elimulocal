@@ -208,3 +208,30 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	_, loggedIn := getSessionUser(r)
+	if loggedIn {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method == "GET" {
+		data := PageData{Title: "Login - ElimuLocal"}
+		renderTemplate(w, "login.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		username := strings.TrimSpace(r.Formvlaue("username"))
+		password := r.FormValue("password")
+
+
+	}
+	if username == "" || password == "" {
+		data := PageData{
+			Title:   "Login - ElimuLocal",
+			Message: "Please enter your username and password.",
+		}
+		renderTemplate(w, "login.html", data)
+		return
+	}
