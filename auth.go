@@ -235,3 +235,21 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "login.html", data)
 		return
 	}
+	user, err := getUserByUsername(username)
+	if err != nil {
+		data := PageData {
+			Title:   "Login - ElimuLocal",
+			Message: "Invalid username or password.",	
+		}
+		renderTemplate(w, "login.html", data)
+		return
+	}
+
+	if  !checkPassword(password, user.PasswordHash) {
+		data := PageData {
+			Title:   "Login - ElimuLocal",
+			Message: "Invalid username or password.",
+		}
+		renderTemplate(w, "login.html", data)
+		return
+	}
