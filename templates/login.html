@@ -1,0 +1,38 @@
+{{define "content"}}
+<section class="upload-section">
+    <a href="/" class="back-link">← Back to Browse</a>
+    <h1>Welcome Back</h1>
+    <p>Log in to upload and manage your resources.</p>
+
+    {{if .Message}}
+    <div class="alert">{{.Message}}</div>
+    {{end}}
+
+    <form action="/login" method="POST">
+        <label>Username *
+            <input
+                type="text"
+                name="username"
+                placeholder="Your username"
+                required
+            >
+        </label>
+
+        <label>Password *
+            <input
+                type="password"
+                name="password"
+                placeholder="Your password"
+                required
+            >
+        </label>
+
+        <button type="submit">Log In</button>
+
+        <p style="text-align:center; margin-top: 8px; font-size: 0.9rem;">
+            No account yet?
+            <a href="/register" style="color: var(--green);">Register here</a>
+        </p>
+    </form>
+</section>
+{{end}}
