@@ -310,10 +310,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+
 	if r.Method == "GET" {
 		data := PageData{
 			Title:        "Share a Resource - ElimuLocal",
 			Universities: getUniversities(),
+			CurrentUser:  currentUser,
+			LoggedIn:     loggedIn,
 		}
 		renderTemplate(w, "upload.html", data)
 		return
@@ -336,6 +340,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Please fill in all required fields.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -347,6 +353,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "File too large. Maximum size is 10MB.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -358,6 +366,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Please select a PDF file to upload.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -370,6 +380,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Only PDF files are allowed.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -384,6 +396,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Could not save file. Please try again.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -396,6 +410,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Could not save file. Please try again.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
