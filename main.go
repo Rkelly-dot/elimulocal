@@ -279,9 +279,16 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	currentUser, loggedIn := getSessionUser(r)
 	message := ""
 	if r.URL.Query().Get("success") == "1" {
 		message = "✅ Resource uploaded successfully! Students can now find and download it."
+	}
+	if r.URL.Query().Get("deleted") == "1" {
+		message = "🗑️ Resource deleted successfully."
+	}
+	if r.URL.Query().Get("success") == "registered" {
+		message = "🎉 Welcome to ElimuLocal! You are now registered and logged in."
 	}
 
 	data := PageData{
@@ -293,6 +300,8 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		Category:     category,
 		Sort:         sort,
 		Message:      message,
+		CurrentUser:  currentUser,
+		LoggedIn:     loggedIn,
 	}
 
 	renderTemplate(w, "home.html", data)
