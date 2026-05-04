@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"net/http"
 	"strings"
 	"time"
@@ -9,7 +10,25 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func init() {
+	gob.Register(int(0))
+
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 365,
+		HttpOnly: true,
+	}
+}
+
 var store = sessions.NewCookieStore([]byte("elimulocal-secret-key-change-in-production"))
+
+func init() {
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 365,
+		HttpOnly: true,
+	}
+}
 
 type User struct {
 	ID           int
@@ -51,8 +70,20 @@ func getSessionUser(r *http.Request) (User, bool) {
 		return User{}, false
 	}
 
-	userID, ok := session.Values["user_id"].(int)
-	if !ok || userID == 0 {
+	var userID int
+
+	switch v := session.Values["userID"].(type) {
+	case int:
+		userID = v
+	case int64:
+		userID = int(v)
+	case float64:
+		userID = int(v)
+	default:
+		return User{}, false
+	}
+
+	if userID == 0 {
 		return User{}, false
 	}
 
@@ -74,7 +105,12 @@ func setSessionUser(w http.ResponseWriter, r *http.Request, userID int) error {
 		return err
 	}
 	session.Values["userID"] = userID
-	return session.Save(r, w)
+	session.Options.MaxAge = 86400 * 365
+	err = session.Save(r, w)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func clearSession(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +214,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		hash, err := hashPassword(password)
+		hash, err := HashPassword(password)
 		if err != nil {
 			data := PageData{
 				Title:   "Register - ElimuLocal",
@@ -223,7 +259,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		username := strings.TrimSpace(r.Formvalue("username"))
+		username := strings.TrimSpace(r.FormValue("username"))
 		password := r.FormValue("password")
 
 		if username == "" || password == "" {
@@ -244,7 +280,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !checkPassword(password, user.PasswordHash) {
+		if !CheckPassword(password, user.PasswordHash) {
 			data := PageData{
 				Title:   "Login - ElimuLocal",
 				Message: "Invalid username or password.",
@@ -253,7 +289,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		setSessionUser(w, r, user.ID)
+		err = setSessionUser(w, r, user.ID)
+		if err != nil {
+			data := PageData{
+				Title:   "Login - ElimuLocal",
+				Message: "Login failed — could not create session: " + err.Error(),
+			}
+			renderTemplate(w, "login.html", data)
+			return
+		}
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
