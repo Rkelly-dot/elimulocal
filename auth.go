@@ -253,3 +253,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "login.html", data)
 		return
 	}
+
+	setSessionUser(w, r, user.ID)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+}
