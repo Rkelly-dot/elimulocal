@@ -26,7 +26,7 @@ type Resource struct {
 	UploadedAt  string
 	FileName    string
 	Downloads   int
-	Upvotes    int
+	Upvotes     int
 }
 
 type PageData struct {
@@ -38,6 +38,8 @@ type PageData struct {
 	University   string
 	Category     string
 	Sort         string
+	Resource     Resource
+	CurrentUser  User
 }
 
 var db *sql.DB
@@ -168,13 +170,13 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 	case "popular":
 		query += " ORDER BY downloads DESC"
 	case "upvotes":
-	query += " ORDER BY upvotes DESC"
+		query += " ORDER BY upvotes DESC"
 	case "oldest":
 		query += " ORDER BY id ASC"
 	default:
 		query += " ORDER BY id DESC"
 	}
-	
+
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -261,7 +263,6 @@ func upvoteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
 
-
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -280,7 +281,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	message := ""
 	if r.URL.Query().Get("success") == "1" {
-    message = "✅ Resource uploaded successfully! Students can now find and download it."
+		message = "✅ Resource uploaded successfully! Students can now find and download it."
 	}
 
 	data := PageData{
@@ -428,7 +429,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow(
 		"SELECT file_name, title FROM resources WHERE id = ?", idStr,
 	).Scan(&fileName, &title)
-
 	if err != nil {
 		http.NotFound(w, r)
 		return

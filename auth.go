@@ -208,6 +208,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	_, loggedIn := getSessionUser(r)
 	if loggedIn {
@@ -222,40 +223,43 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		username := strings.TrimSpace(r.Formvlaue("username"))
+		username := strings.TrimSpace(r.Formvalue("username"))
 		password := r.FormValue("password")
 
-
-	}
-	if username == "" || password == "" {
-		data := PageData{
-			Title:   "Login - ElimuLocal",
-			Message: "Please enter your username and password.",
+		if username == "" || password == "" {
+			data := PageData{
+				Title:   "Login - ElimuLocal",
+				Message: "Please enter your username and password.",
+			}
+			renderTemplate(w, "login.html", data)
+			return
 		}
-		renderTemplate(w, "login.html", data)
-		return
-	}
-	user, err := getUserByUsername(username)
-	if err != nil {
-		data := PageData {
-			Title:   "Login - ElimuLocal",
-			Message: "Invalid username or password.",	
+		user, err := getUserByUsername(username)
+		if err != nil {
+			data := PageData{
+				Title:   "Login - ElimuLocal",
+				Message: "Invalid username or password.",
+			}
+			renderTemplate(w, "login.html", data)
+			return
 		}
-		renderTemplate(w, "login.html", data)
-		return
-	}
 
-	if  !checkPassword(password, user.PasswordHash) {
-		data := PageData {
-			Title:   "Login - ElimuLocal",
-			Message: "Invalid username or password.",
+		if !checkPassword(password, user.PasswordHash) {
+			data := PageData{
+				Title:   "Login - ElimuLocal",
+				Message: "Invalid username or password.",
+			}
+			renderTemplate(w, "login.html", data)
+			return
 		}
-		renderTemplate(w, "login.html", data)
-		return
-	}
 
-	setSessionUser(w, r, user.ID)
+		setSessionUser(w, r, user.ID)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	clearSession(w, r)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
