@@ -40,6 +40,7 @@ type PageData struct {
 	Sort         string
 	Resource     Resource
 	CurrentUser  User
+	LoggedIn     bool
 }
 
 var db *sql.DB
@@ -57,6 +58,7 @@ func initDB() {
 		log.Fatal("Could not connect to database:", err)
 	}
 
+	createUsersTable()
 	createTable := `
 	CREATE TABLE IF NOT EXISTS resources (
 		id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -478,6 +480,9 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	http.HandleFunc("/register", registerHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
