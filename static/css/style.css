@@ -44,11 +44,13 @@ body {
     line-height: 1.6;
 }
 .navbar {
-    background: var(--white);
+    background: #ffffff;
     border-bottom: 1px solid var(--border);
     position: sticky;
-     top: 0;
-    z-index: 100;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    isolation: isolate;
 }
 
 .nav-inner {
