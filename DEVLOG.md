@@ -378,3 +378,301 @@ Get clear feedback after uploading a resource
 Run live on a campus WiFi network accessible from any device
 Tested and working on a real Android phone
 
+#Month 3 — IN PROGRESS
+Branch: feature/month3
+
+##Step 15 — User authentication
+Date: May 2026
+Branch: feature/month3
+###       What we built
+
+New auth.go file — all authentication code separated from main.go
+User registration — students create an account with username, email, password
+User login — students sign in with username and password
+User logout — session cleared, cookie deleted
+Session management — Go remembers who is logged in between requests
+Navbar updates dynamically — shows username and logout when logged in,
+shows login and register buttons when logged out
+newPageData() helper function — ensures every page always has the
+correct session state passed to templates automatically
+Welcome message shown after successful registration
+
+###New files created
+
+auth.go — contains all auth functions, handlers and session store
+templates/register.html — registration form page
+templates/login.html — login form page
+
+###New packages added
+
+golang.org/x/crypto/bcrypt — for hashing passwords safely
+github.com/gorilla/sessions — for managing login sessions
+github.com/gorilla/securecookie — pulled in automatically by gorilla/sessions
+
+##Key decisions
+###Why a separate auth.go file?
+Keeping all authentication code in one file makes it easier to find,
+read, and modify. main.go was getting long — splitting by concern
+keeps both files focused and readable.
+###Why bcrypt and not MD5 or SHA256?
+MD5 and SHA256 are fast — which is bad for passwords. An attacker can
+try billions of guesses per second. bcrypt is deliberately slow
+(cost factor 12) — it takes ~250ms per hash making brute force
+attacks practically impossible. It also automatically handles salting
+which prevents rainbow table attacks.
+###Why show "Invalid username or password" for both wrong username and wrong password?
+If we said "username not found" vs "wrong password" separately, an
+attacker could use the login form to discover which usernames exist
+in the system. The generic message gives away no information.
+
+###Why newPageData() helper function?
+Every template needs LoggedIn and CurrentUser to render the navbar
+correctly. Without the helper, every single handler had to manually
+call getSessionUser(r) and add those fields — easy to forget and
+caused the bug where the upload page showed the wrong navbar state.
+The helper makes it impossible to forget.
+
+##Challenges encountered and how they were solved
+###Challenge 1 — `go run main.go` stopped working
+After creating auth.go, running go run main.go gave errors:
+undefined: User, undefined: createUsersTable etc.
+######Root cause: `go run main.go `only compiles one file. When the project
+has multiple Go files, all of them must be included.
+######Solution: Use `go run .` instead — this compiles ALL Go files in the
+current directory automatically. From this point forward, always use
+`go run . `not `go run main.go.`
+
+##Challenge 2 — Login worked but navbar still showed "Log in / Register"
+After logging in successfully, the homepage showed the correct logged-in
+navbar, but the upload page still showed the logged-out state.
+######Root cause: uploadHandler was building PageData without including
+LoggedIn and CurrentUser fields. Only homeHandler had those fields.
+######Solution: Created the newPageData(r, title) helper function that
+automatically reads the session and fills in LoggedIn and CurrentUser
+for every handler. Updated all handlers to use it.
+
+##Challenge 3 — Session not being read correctly after login
+Login completed without error and users were saved to the database, but
+after redirect the server could not read the session — treating the user
+as logged out on every page.
+######Root cause: Two issues combined:
+
+gorilla/sessions uses encoding/gob to encode the session cookie,
+but the int type was not registered with gob — causing silent
+decode failure on every subsequent request
+Session cookie options (Path, MaxAge, HttpOnly) were not set
+explicitly, causing the cookie to expire immediately or be rejected
+
+######Solution:
+
+Added gob.Register(int(0)) in the init() function to register
+the int type with gob encoder
+Set explicit cookie options in init():
+Path: "/", MaxAge: 86400 * 365, HttpOnly: true
+Updated getSessionUser() to handle multiple possible decoded types
+using a type switch — handles int, int64, and float64
+Cleared browser cookies to remove stale broken session cookies
+
+ # Step 15 — Go Concepts and SQL Reference
+
+This document covers every new Go concept and SQL statement introduced
+during Step 15 of the ElimuLocal project — user authentication.
+
+---
+
+## Go Concepts Introduced
+
+### `encoding/gob`
+
+Go's built-in binary encoder. `gorilla/sessions` uses it internally to
+encode and decode the session cookie. Without registering your types with
+`gob`, it silently fails to decode values — which was the root cause of
+the session bug in Challenge 3.
+
+### `gob.Register(int(0))`
+
+Tells the `gob` encoder that the `int` type exists and should be handled
+correctly. You call this in `init()` before the server starts so `gob` is
+ready before any session is ever created.
+
+### `init()`
+
+A special Go function that runs automatically before `main()`. You cannot
+call it manually — Go calls it for you. We use it to configure the session
+store options so they are set correctly from the very first request.
+
+```go
+func init() {
+    gob.Register(int(0))
+
+    store.Options = &sessions.Options{
+        Path:     "/",
+        MaxAge:   86400 * 365,
+        HttpOnly: true,
+    }
+}
+```
+
+### Type Switch — `switch v := value.(type)`
+
+Checks the actual runtime type of an interface value and lets you handle
+each type differently. We use this in `getSessionUser()` because
+`gorilla/sessions` can return the `userID` as `int`, `int64`, or `float64`
+depending on how it was encoded. The type switch handles all three cases
+safely.
+
+```go
+switch v := session.Values["userID"].(type) {
+case int:
+    userID = v
+case int64:
+    userID = int(v)
+case float64:
+    userID = int(v)
+default:
+    return User{}, false
+}
+```
+
+### `bcrypt.GenerateFromPassword()`
+
+Takes a plain text password and returns a hash — a scrambled string that
+cannot be reversed. The cost factor of `12` makes it deliberately slow
+(roughly 250ms per hash) so brute force attacks are impractical. This hash
+is what gets stored in the database, never the real password.
+
+```go
+hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+```
+
+### `bcrypt.CompareHashAndPassword()`
+
+Checks whether a plain password matches a stored hash. It returns `nil` if
+they match, and an error if they do not. Used every time a student tries to
+log in.
+
+```go
+err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+if err == nil {
+    // password is correct
+}
+```
+
+### `sessions.NewCookieStore()`
+
+Creates a session store backed by signed browser cookies. The secret key is
+used to sign every cookie — if anyone tampers with the cookie value, the
+signature check fails and the session is rejected entirely.
+
+```go
+var store = sessions.NewCookieStore([]byte("your-secret-key"))
+```
+
+### `session.Values["key"]`
+
+Reads or writes a value inside the session. It works like a map — you can
+store any value under any string key. We store the logged-in user's ID
+under the key `"userID"`.
+
+```go
+// writing
+session.Values["userID"] = user.ID
+
+// reading
+userID := session.Values["userID"]
+```
+
+### `session.Save(r, w)`
+
+Must be called after every change to a session. Without it, changes are
+lost — the updated cookie is never sent to the browser. Forgetting this
+call was part of the root cause of Challenge 3.
+
+```go
+err = session.Save(r, w)
+if err != nil {
+    // handle error
+}
+```
+
+### `result.LastInsertId()`
+
+Returns the auto-generated ID of the row that was just inserted into the
+database. We use it immediately after registration to log the new user in
+without making them go through the login page separately.
+
+```go
+result, err := db.Exec("INSERT INTO users ...")
+userID, _ := result.LastInsertId()
+setSessionUser(w, r, int(userID))
+```
+
+### `go run .`
+
+Compiles and runs all Go files in the current directory. Once the project
+has more than one `.go` file — like `main.go` and `auth.go` — you must use
+this instead of `go run main.go`, which only compiles a single named file.
+
+```bash
+# wrong — only compiles main.go
+go run main.go
+
+# correct — compiles all .go files in the folder
+go run .
+```
+
+---
+
+## New SQL Introduced
+
+### Creating the Users Table
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE,
+    email         TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL
+);
+```
+
+`UNIQUE` on `username` and `email` means the database itself rejects
+duplicate registrations — we do not have to rely only on our Go checks.
+`NOT NULL` means these fields can never be left empty. `AUTOINCREMENT`
+means SQLite assigns the next available ID number automatically so we never
+manage IDs manually.
+
+### Checking If a Username or Email Is Already Taken
+
+```sql
+SELECT COUNT(*) FROM users WHERE username = ?
+SELECT COUNT(*) FROM users WHERE email = ?
+```
+
+Returns `0` if the value does not exist yet, `1` if it does. We check this
+before trying to insert a new user so we can show a friendly error message
+to the student rather than letting the database throw a raw `UNIQUE`
+constraint error.
+
+### Inserting a New User
+
+```sql
+INSERT INTO users (username, email, password_hash, created_at)
+VALUES (?, ?, ?, ?)
+```
+
+Notice there is no `password` column — only `password_hash`. The real
+password never touches the database. `bcrypt` converts it to a hash in Go
+before this query ever runs.
+
+### Looking Up a User at Login
+
+```sql
+SELECT id, username, email, password_hash, created_at
+FROM users WHERE username = ?
+```
+
+Returns the full user record including the stored hash. Go then uses
+`bcrypt.CompareHashAndPassword()` to check whether the submitted password
+matches that hash — the comparison always happens in Go, never in SQL.
