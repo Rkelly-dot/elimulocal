@@ -1,0 +1,59 @@
+{{define "content"}}
+<section class="upload-section">
+
+    <a href="/" class="back-link">← Back to Browse</a>
+    <h1>Edit Resource</h1>
+    <p>Update the details of this resource.</p>
+
+    {{if .Message}}
+    <div class="alert">{{.Message}}</div>
+    {{end}}
+
+    <form action="/edit/{{.Resource.ID}}" method="POST" enctype="multipart/form-data">
+
+        <label>Resource Title *
+            <input type="text" name="title" value="{{.Resource.Title}}" required>
+        </label>
+
+        <label>Course / Subject *
+            <input type="text" name="course" value="{{.Resource.Course}}" required>
+        </label>
+
+        <label>University *
+            <input
+                type="text"
+                name="university"
+                list="uni-suggestions"
+                value="{{.Resource.University}}"
+                required
+            >
+            <datalist id="uni-suggestions">
+                {{range .Universities}}
+                <option value="{{.}}">
+                {{end}}
+            </datalist>
+        </label>
+
+        <label>Category *
+            <select name="category" required>
+                <option value="Notes"      {{if eq .Resource.Category "Notes"}}selected{{end}}>Notes</option>
+                <option value="Past Paper" {{if eq .Resource.Category "Past Paper"}}selected{{end}}>Past Paper</option>
+                <option value="Textbook"   {{if eq .Resource.Category "Textbook"}}selected{{end}}>Textbook</option>
+                <option value="Summary"    {{if eq .Resource.Category "Summary"}}selected{{end}}>Summary</option>
+                <option value="Other"      {{if eq .Resource.Category "Other"}}selected{{end}}>Other</option>
+            </select>
+        </label>
+
+        <label>Description
+            <textarea name="description" rows="3">{{.Resource.Description}}</textarea>
+        </label>
+
+        <label>Replace File (optional — leave blank to keep existing file)
+            <input type="file" name="file" accept=".pdf,.mp4,.mkv">
+        </label>
+
+        <button type="submit">💾 Save Changes</button>
+
+    </form>
+</section>
+{{end}}
