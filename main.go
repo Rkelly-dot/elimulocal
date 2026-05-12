@@ -268,6 +268,136 @@ func upvoteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
+func editHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/edit/")
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if resource.UserID != currentUser.ID {
+		http.Error(w, "You can only edit your own resources.", http.StatusForbidden)
+		return
+	}
+
+	if r.Method == "GET" {
+		data := newPageData(r, "Edit Resource - ElimuLocal")
+		data.Resource = resource
+		data.Universities = getUniversities()
+		renderTemplate(w, "edit.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		title := strings.TrimSpace(r.FormValue("title"))
+		course := strings.TrimSpace(r.FormValue("course"))
+		university := strings.TrimSpace(r.FormValue("university"))
+		category := r.FormValue("category")
+		description := strings.TrimSpace(r.FormValue("description"))
+
+		if title == "" || course == "" || university == "" {
+			data := newPageData(r, "Edit Resource - ElimuLocal")
+			data.Message = "Please fill in all required fields."
+			data.Resource = resource
+			data.Universities = getUniversities()
+			renderTemplate(w, "edit.html", data)
+			return
+		}
+
+		fileName := resource.FileName
+
+		r.ParseMultipartForm(10 << 20)
+		file, header, err := r.FormFile("file")
+		if err == nil {
+			defer file.Close()
+			ext := strings.ToLower(filepath.Ext(header.Filename))
+			if ext == ".pdf" || ext == ".mp4" || ext == ".mkv" {
+				newFileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
+				newFilePath := filepath.Join("uploads", newFileName)
+				dst, err := os.Create(newFilePath)
+				if err == nil {
+					defer dst.Close()
+					io.Copy(dst, file)
+					if fileName != "" {
+						os.Remove(filepath.Join("uploads", fileName))
+					}
+					fileName = newFileName
+				}
+			}
+		}
+
+		_, err = db.Exec(
+			"UPDATE resources SET title=?, course=?, university=?, category=?, description=?, file_name=? WHERE id=? AND user_id=?",
+			title, course, university, category, description, fileName, id, currentUser.ID,
+		)
+		if err != nil {
+			data := newPageData(r, "Edit Resource - ElimuLocal")
+			data.Message = "Could not save changes. Please try again."
+			data.Resource = resource
+			data.Universities = getUniversities()
+			renderTemplate(w, "edit.html", data)
+			return
+		}
+
+		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
+		return
+	}
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/delete/")
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if resource.UserID != currentUser.ID {
+		http.Error(w, "You can only delete your own resources.", http.StatusForbidden)
+		return
+	}
+
+	if resource.FileName != "" {
+		os.Remove(filepath.Join("uploads", resource.FileName))
+	}
+
+	db.Exec("DELETE FROM resources WHERE id = ? AND user_id = ?", id, currentUser.ID)
+
+	http.Redirect(w, r, "/?deleted=1", http.StatusSeeOther)
+}
+
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -508,6 +638,8 @@ func main() {
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
 	http.HandleFunc("/upvote/", upvoteHandler)
+	http.HandleFUnc("/edit/", editHandler)
+	http.HandleFunc("/delete/", deleteHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
