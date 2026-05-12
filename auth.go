@@ -10,19 +10,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func init() {
-	gob.Register(int(0))
-
-	store.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   86400 * 365,
-		HttpOnly: true,
-	}
-}
-
 var store = sessions.NewCookieStore([]byte("elimulocal-secret-key-change-in-production"))
 
 func init() {
+	gob.Register(int(0))
+
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 365,
