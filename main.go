@@ -27,6 +27,7 @@ type Resource struct {
 	FileName    string
 	Downloads   int
 	Upvotes     int
+	userID      int
 }
 
 type PageData struct {
@@ -85,6 +86,7 @@ func initDB() {
 
 func seedDB() {
 	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0")
+	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN user_id INTEGER DEFAULT 0")
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
 	if err != nil {
@@ -139,12 +141,13 @@ func saveResource(r Resource) error {
 		r.UploadedBy,
 		r.UploadedAt,
 		r.FileName,
+		r.UserID,
 	)
 	return err
 }
 
 func getResources(search, university, category, sort string) ([]Resource, error) {
-	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes FROM resources"
+	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id FROM resources"
 
 	var args []interface{}
 	var conditions []string
@@ -200,6 +203,7 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 			&r.FileName,
 			&r.Downloads,
 			&r.Upvotes,
+			&r.UserID,
 		)
 		if err != nil {
 			return nil, err
@@ -426,6 +430,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			UploadedBy:  uploader,
 			UploadedAt:  time.Now().Format("2006-01-02"),
 			FileName:    fileName,
+			UserID:      currentUser.ID,
 		}
 
 		err = saveResource(newResource)
