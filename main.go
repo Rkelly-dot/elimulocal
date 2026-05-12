@@ -27,7 +27,7 @@ type Resource struct {
 	FileName    string
 	Downloads   int
 	Upvotes     int
-	userID      int
+	UserID      int
 }
 
 type PageData struct {
@@ -129,8 +129,8 @@ func seedDB() {
 
 func saveResource(r Resource) error {
 	query := `
-	INSERT INTO resources (title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`
+	INSERT INTO resources (title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`
 
 	_, err := db.Exec(query,
 		r.Title,
@@ -398,6 +398,37 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?deleted=1", http.StatusSeeOther)
 }
 
+func getResourceByID(id int) (Resource, error) {
+	var r Resource
+	err := db.QueryRow(
+		"SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id FROM resources WHERE id = ?",
+		id,
+	).Scan(
+		&r.ID,
+		&r.Title,
+		&r.Course,
+		&r.University,
+		&r.Category,
+		&r.Description,
+		&r.UploadedBy,
+		&r.UploadedAt,
+		&r.FileName,
+		&r.Downloads,
+		&r.Upvotes,
+		&r.UserID,
+	)
+	return r, err
+}
+
+func newPageData(r *http.Request, title string) PageData {
+	currentUser, loggedIn := getSessionUser(r)
+	return PageData{
+		Title:       title,
+		Universities: getUniversities(),
+		CurrentUser: currentUser,
+		LoggedIn:    loggedIn,
+	}
+}
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -638,7 +669,7 @@ func main() {
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
 	http.HandleFunc("/upvote/", upvoteHandler)
-	http.HandleFUnc("/edit/", editHandler)
+	http.HandleFunc("/edit/", editHandler)
 	http.HandleFunc("/delete/", deleteHandler)
 
 	fmt.Println("ElimuLocal is running!")
