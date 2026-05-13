@@ -322,7 +322,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 
 		fileName := resource.FileName
 
-		r.ParseMultipartForm(10 << 20)
+		r.ParseMultipartForm(500 << 20)
 		file, header, err := r.FormFile("file")
 		if err == nil {
 			defer file.Close()
@@ -542,16 +542,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		ext := strings.ToLower(filepath.Ext(header.Filename))
-		if ext != ".pdf" {
-			data := PageData{
-				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Only PDF files are allowed.",
-				Universities: getUniversities(),
-				CurrentUser:  currentUser,
-				LoggedIn:     loggedIn,
-			}
-			renderTemplate(w, "upload.html", data)
-			return
+		allowedTypes := map[string]bool{
+			".pdf":  true,
+    		".mp4":  true,
+    		".mkv":  true,
+    		".webm": true,
+		}
+
+		if !allowedTypes[ext] {
+    		data := newPageData(r, "Share a Resource - ElimuLocal")
+    		data.Message = "Only PDF, MP4, MKV or WebM files are allowed."
+    		data.Universities = getUniversities()
+    		renderTemplate(w, "upload.html", data)
+    		return
 		}
 
 		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
@@ -761,5 +764,12 @@ func main() {
 	fmt.Println("Open your browser and go to: http://localhost:8080")
 	fmt.Println("Press Ctrl+C to stop the server.")
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	server := &http.Server{
+    Addr:         ":8080",
+    ReadTimeout:  300 * time.Second,
+    WriteTimeout: 300 * time.Second,
+    IdleTimeout:  120 * time.Second,
+}
+
+log.Fatal(server.ListenAndServe())
 }
