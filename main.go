@@ -81,6 +81,14 @@ func initDB() {
 		log.Fatal("Could not create table:", err)
 	}
 
+	// Migration: link existing resources to users when uploaded_by matches a username
+	_, _ = db.Exec(`
+	UPDATE resources
+	SET user_id = (SELECT id FROM users WHERE username = resources.uploaded_by)
+	WHERE user_id = 0
+	  AND EXISTS (SELECT 1 FROM users WHERE username = resources.uploaded_by);
+	`)
+
 	seedDB()
 
 	fmt.Println("Database ready — elimulocal.db")
@@ -514,11 +522,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err := r.ParseMultipartForm(10 << 20)
+		// allow larger uploads for video files (up to 500MB)
+		err := r.ParseMultipartForm(500 << 20)
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
-				Message:      "File too large. Maximum size is 10MB.",
+				Message:      "File too large. Maximum size is 500MB.",
 				Universities: getUniversities(),
 				CurrentUser:  currentUser,
 				LoggedIn:     loggedIn,
@@ -531,7 +540,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Please select a PDF file to upload.",
+				Message:      "Please select a file to upload.",
 				Universities: getUniversities(),
 				CurrentUser:  currentUser,
 				LoggedIn:     loggedIn,
@@ -542,19 +551,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		ext := strings.ToLower(filepath.Ext(header.Filename))
-		allowedTypes := map[string]bool{
-			".pdf":  true,
-    		".mp4":  true,
-    		".mkv":  true,
-    		".webm": true,
-		}
-
-		if !allowedTypes[ext] {
-    		data := newPageData(r, "Share a Resource - ElimuLocal")
-    		data.Message = "Only PDF, MP4, MKV or WebM files are allowed."
-    		data.Universities = getUniversities()
-    		renderTemplate(w, "upload.html", data)
-    		return
+		if ext != ".pdf" && ext != ".mp4" && ext != ".mkv" && ext != ".webm" {
+			data := PageData{
+				Title:        "Share a Resource - ElimuLocal",
+				Message:      "Only PDF and video files (MP4, MKV, WEBM) are allowed.",
+				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
+			}
+			renderTemplate(w, "upload.html", data)
+			return
 		}
 
 		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
