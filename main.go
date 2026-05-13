@@ -42,6 +42,8 @@ type PageData struct {
 	Resource     Resource
 	CurrentUser  User
 	LoggedIn     bool
+	IsVideo		 bool
+	MimeType	 string
 }
 
 var db *sql.DB
@@ -656,6 +658,87 @@ func renderTemplate(w http.ResponseWriter, page string, data PageData) {
 	}
 }
 
+func previewHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/preview/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if resource.FileName == "" {
+		http.Error(w, "No file available for this resource yet.", http.StatusNotFound)
+		return
+	}
+	ext := strings.ToLower(filepath.Ext(resource.FileName))
+	isVideo := ext == ".mp4" || ext == ".mkv" || ext == ".webm"
+
+	mimeType := "application/pdf"
+	if ext == ".mp4" {
+		mimeType = "video/mp4"
+	} else if ext == ".mkv" {
+		mimeType = "video/x-matroska"
+	} else if ext == ".webm" {
+		mimeType = "video/webm"
+	}
+
+	data := newPageData(r, resource.Title+" - ElimuLocal")
+	data.Resource = resource
+	data.IsVideo = isVideo
+	data.MimeType = mimeType
+
+	renderTemplate(w, "preview.html", data)
+}
+
+func streamHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/stream/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var fileName string
+	var title string
+	err := db.QueryRow(
+		"SELECT file_name, title FROM resources WHERE id = ?", idStr,
+	).Scan(&fileName, &title)
+
+	if err != nil || fileName == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	filePath := filepath.Join("uploads", fileName)
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	switch ext {
+	case ".pdf":
+		w.Header().Set("Content-Type", "application/pdf")
+	case ".mp4":
+		w.Header().Set("Content-Type", "video/mp4")
+	case ".mkv":
+		w.Header().Set("Content-Type", "video/x-matroska")
+	case ".webm":
+		w.Header().Set("Content-Type", "video/webm")
+	default:
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+
+	w.Header().Set("Content-Disposition", "inline; filename=\""+title+"\"")
+	http.ServeFile(w, r, filePath)
+}
+
 func main() {
 	initDB()
 
@@ -671,6 +754,8 @@ func main() {
 	http.HandleFunc("/upvote/", upvoteHandler)
 	http.HandleFunc("/edit/", editHandler)
 	http.HandleFunc("/delete/", deleteHandler)
+	http.HandleFunc("/preview/", previewHandler)
+	http.HandleFunc("/stream/", streamHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
