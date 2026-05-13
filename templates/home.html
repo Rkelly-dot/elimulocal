@@ -99,6 +99,9 @@
                         </form>
                         {{end}}
                     {{end}}
+                    {{if .FileName}}
+                    <a href="/preview/{{.ID}}" class="preview-btn">👁 Preview</a>
+                    {{end}}
                     <a href="/download/{{.ID}}" class="download-btn">Download</a>
                 </div>
             </div>

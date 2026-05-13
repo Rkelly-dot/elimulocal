@@ -1,0 +1,77 @@
+{{define "content"}}
+
+<div class="preview-page">
+
+    <div class="preview-header">
+        <a href="/" class="back-link">← Back to Browse</a>
+        <div class="preview-title-row">
+            <div>
+                <span class="tag">{{.Resource.Category}}</span>
+                <h1 class="preview-title">{{.Resource.Title}}</h1>
+                <div class="preview-meta">
+                    <span>🎓 {{.Resource.University}}</span>
+                    <span>📖 {{.Resource.Course}}</span>
+                    <span>👤 {{.Resource.UploadedBy}}</span>
+                    <span>📅 {{.Resource.UploadedAt}}</span>
+                </div>
+            </div>
+            <a href="/download/{{.Resource.ID}}" class="download-btn">
+                ⬇ Download
+            </a>
+        </div>
+    </div>
+
+    <div class="preview-container">
+
+        {{if .IsVideo}}
+        <video
+            controls
+            preload="metadata"
+            class="video-player"
+        >
+            <source src="/stream/{{.Resource.ID}}" type="{{.MimeType}}">
+            <p>Your browser does not support video playback.
+               <a href="/download/{{.Resource.ID}}">Download the file instead.</a>
+            </p>
+        </video>
+
+        {{else}}
+        <div class="pdfjs-container" id="pdfjs-container">
+            <div class="pdf-loading" id="pdf-loading">
+                <div class="loading-spinner"></div>
+                <p>Loading PDF viewer...</p>
+            </div>
+            <iframe
+                id="pdf-iframe"
+                class="pdf-viewer"
+                allowfullscreen
+            ></iframe>
+        </div>
+
+        <script>
+            var pdfUrl = "/stream/{{.Resource.ID}}";
+            var viewerUrl = "/static/pdfjs/web/viewer.html?file="
+                + encodeURIComponent(pdfUrl);
+
+            var iframe = document.getElementById("pdf-iframe");
+            var loading = document.getElementById("pdf-loading");
+
+            iframe.src = viewerUrl;
+
+            iframe.onload = function() {
+                loading.style.display = "none";
+                iframe.style.display = "block";
+            };
+
+            iframe.onerror = function() {
+                loading.innerHTML = "<p>Could not load PDF viewer. " +
+                    "<a href='/download/{{.Resource.ID}}'>Download instead</a></p>";
+            };
+        </script>
+        {{end}}
+
+    </div>
+
+</div>
+
+{{end}}
