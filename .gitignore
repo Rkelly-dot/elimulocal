@@ -15,4 +15,4 @@ uploads/*
 
 Make sure this line is in there:
 ```
-!**/.gitkeep       
+!**/.gitkeep       static/pdfjs/
