@@ -232,7 +232,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		userID, _ := result.LastInsertId()
 		setSessionUser(w, r, int(userID))
 
-		http.Redirect(w, r, "/?success=registered", http.StatusSeeOther)
+		http.Redirect(w, r, "/browse?success=registered", http.StatusSeeOther)
 		return
 	}
 }
@@ -240,7 +240,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	_, loggedIn := getSessionUser(r)
 	if loggedIn {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/browse", http.StatusSeeOther)
 		return
 	}
 
@@ -290,7 +290,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			renderTemplate(w, "login.html", data)
 			return
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/browse", http.StatusSeeOther)
 		return
 	}
 }

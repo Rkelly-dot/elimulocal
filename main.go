@@ -42,8 +42,8 @@ type PageData struct {
 	Resource     Resource
 	CurrentUser  User
 	LoggedIn     bool
-	IsVideo		 bool
-	MimeType	 string
+	IsVideo      bool
+	MimeType     string
 }
 
 var db *sql.DB
@@ -433,19 +433,35 @@ func getResourceByID(id int) (Resource, error) {
 func newPageData(r *http.Request, title string) PageData {
 	currentUser, loggedIn := getSessionUser(r)
 	return PageData{
-		Title:       title,
+		Title:        title,
 		Universities: getUniversities(),
-		CurrentUser: currentUser,
-		LoggedIn:    loggedIn,
+		CurrentUser:  currentUser,
+		LoggedIn:     loggedIn,
 	}
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+func renderLanding(w http.ResponseWriter, data PageData) {
+	tmpl, err := template.ParseFiles("templates/landing.html")
+	if err != nil {
+		http.Error(w, "Could not load page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.ExecuteTemplate(w, "landing", data)
+	if err != nil {
+		http.Error(w, "Could not render page: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func landingHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
+	data := newPageData(r, "ElimuLocal — Free Study Materials for Kenyan University Students")
+	renderLanding(w, data)
+}
 
+func browseHandler(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	university := r.URL.Query().Get("university")
 	category := r.URL.Query().Get("category")
@@ -456,10 +472,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	currentUser, loggedIn := getSessionUser(r)
+
 	message := ""
 	if r.URL.Query().Get("success") == "1" {
-		message = "✅ Resource uploaded successfully! Students can now find and download it."
+		message = "✅ Resource uploaded successfully!"
 	}
 	if r.URL.Query().Get("deleted") == "1" {
 		message = "🗑️ Resource deleted successfully."
@@ -468,18 +484,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		message = "🎉 Welcome to ElimuLocal! You are now registered and logged in."
 	}
 
-	data := PageData{
-		Title:        "ElimuLocal - Browse Study Materials",
-		Resources:    resources,
-		Universities: getUniversities(),
-		Search:       search,
-		University:   university,
-		Category:     category,
-		Sort:         sort,
-		Message:      message,
-		CurrentUser:  currentUser,
-		LoggedIn:     loggedIn,
-	}
+	data := newPageData(r, "Browse Resources - ElimuLocal")
+	data.Resources = resources
+	data.Universities = getUniversities()
+	data.Search = search
+	data.University = university
+	data.Category = category
+	data.Sort = sort
+	data.Message = message
 
 	renderTemplate(w, "home.html", data)
 }
@@ -616,7 +628,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
+		http.Redirect(w, r, "/browse?success=1", http.StatusSeeOther)
 		return
 	}
 }
@@ -754,28 +766,29 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/register", registerHandler)
-	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/logout", logoutHandler)
-	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/", landingHandler)
+	http.HandleFunc("/browse", browseHandler)
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
+	http.HandleFunc("/preview/", previewHandler)
+	http.HandleFunc("/stream/", streamHandler)
 	http.HandleFunc("/upvote/", upvoteHandler)
 	http.HandleFunc("/edit/", editHandler)
 	http.HandleFunc("/delete/", deleteHandler)
-	http.HandleFunc("/preview/", previewHandler)
-	http.HandleFunc("/stream/", streamHandler)
+	http.HandleFunc("/register", registerHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
 
 	fmt.Println("ElimuLocal is running!")
 	fmt.Println("Open your browser and go to: http://localhost:8080")
 	fmt.Println("Press Ctrl+C to stop the server.")
 
 	server := &http.Server{
-    Addr:         ":8080",
-    ReadTimeout:  300 * time.Second,
-    WriteTimeout: 300 * time.Second,
-    IdleTimeout:  120 * time.Second,
-}
+		Addr:         ":8080",
+		ReadTimeout:  300 * time.Second,
+		WriteTimeout: 300 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
-log.Fatal(server.ListenAndServe())
+	log.Fatal(server.ListenAndServe())
 }
