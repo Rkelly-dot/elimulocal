@@ -1,0 +1,970 @@
+{{define "landing"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElimuLocal — Free Study Materials for Kenyan University Students</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --black:   #0a0a0a;
+            --white:   #f4f2ee;
+            --green:   #1a7a4a;
+            --green-light: #e8f5ee;
+            --gold:    #c9a84c;
+            --muted:   #8a8a7a;
+            --border:  rgba(244,242,238,0.12);
+            --radius:  12px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Sora', sans-serif;
+            background: var(--black);
+            color: var(--white);
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        /* ---- LOADER ---- */
+        .elp-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: var(--black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .elp-loader__title {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(3.5rem, 12vw, 9rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            line-height: 1;
+            overflow: hidden;
+        }
+
+        .elp-loader__part {
+            overflow: hidden;
+            display: flex;
+        }
+
+        .elp-loader__letter {
+            display: block;
+            transform: translateY(110%);
+        }
+
+        .elp-loader__image-box {
+            width: 0;
+            overflow: hidden;
+            position: relative;
+            height: 0.85em;
+            display: flex;
+            align-items: center;
+        }
+
+        .elp-loader__image-inner {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            width: 0%;
+        }
+
+        .elp-loader__image-wrap {
+            position: absolute;
+            inset: 0;
+        }
+
+        .elp-loader__img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+
+        .elp-loader__img.fade { opacity: 1; }
+
+        /* ---- HERO ---- */
+        .hero {
+            min-height: 100dvh;
+            background: var(--black);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(26,122,74,0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .hero-nav__logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            color: var(--white);
+            text-decoration: none;
+            overflow: hidden;
+        }
+
+        .hero-nav__logo span { display: block; transform: translateY(110%); }
+
+        .hero-nav__links {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.2rem;
+            overflow: hidden;
+        }
+
+        .hero-nav__link {
+            font-size: 0.95rem;
+            color: rgba(244,242,238,0.6);
+            text-decoration: none;
+            transition: color 0.2s;
+            transform: translateY(110%);
+            display: block;
+        }
+
+        .hero-nav__link:hover { color: var(--white); }
+
+        .hero-nav__cta {
+            transform: translateY(110%);
+            display: block;
+        }
+
+        .hero-nav__btn {
+            background: var(--green);
+            color: var(--white);
+            text-decoration: none;
+            padding: 10px 22px;
+            border-radius: 100px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.2s;
+            display: inline-block;
+        }
+
+        .hero-nav__btn:hover {
+            background: #155f39;
+            transform: translateY(-1px);
+        }
+
+        .hero-body {
+            width: 100%;
+        }
+
+        .hero-eyebrow {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .hero-eyebrow span { display: block; transform: translateY(110%); }
+
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 7rem);
+            font-weight: 700;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+            margin-bottom: 2rem;
+        }
+
+        .hero-title .line {
+            overflow: hidden;
+            display: block;
+        }
+
+        .hero-title .line span {
+            display: block;
+            transform: translateY(110%);
+        }
+
+        .hero-title .accent { color: var(--green); }
+
+        .hero-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .hero-desc {
+            max-width: 420px;
+            font-size: 1rem;
+            color: rgba(244,242,238,0.55);
+            line-height: 1.7;
+            transform: translateY(30px);
+            opacity: 0;
+        }
+
+        .hero-cta-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            transform: translateY(30px);
+            opacity: 0;
+        }
+
+        .btn-primary {
+            background: var(--white);
+            color: var(--black);
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: transform 0.2s, background 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); background: #e0ded8; }
+
+        .btn-ghost {
+            color: rgba(244,242,238,0.6);
+            text-decoration: none;
+            padding: 14px 24px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .btn-ghost:hover { color: var(--white); }
+
+        /* ---- SCROLL INDICATOR ---- */
+        .scroll-hint {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            animation: fadeIn 1s ease 3s forwards;
+        }
+
+        .scroll-hint__line {
+            width: 1px;
+            height: 48px;
+            background: linear-gradient(to bottom, transparent, rgba(244,242,238,0.4));
+            animation: scrollPulse 2s ease infinite;
+        }
+
+        .scroll-hint__text {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            color: rgba(244,242,238,0.35);
+            writing-mode: vertical-rl;
+        }
+
+        @keyframes scrollPulse {
+            0%, 100% { opacity: 0.4; transform: scaleY(1); }
+            50% { opacity: 1; transform: scaleY(1.1); }
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* ---- LIGHT CONTENT BELOW ---- */
+        .content-below {
+            background: var(--white);
+            color: var(--black);
+            position: relative;
+        }
+
+        /* ---- MISSION SECTION ---- */
+        .mission {
+            padding: 120px 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .mission__label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        .mission__text {
+            font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+            font-weight: 300;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
+            color: #1a1a1a;
+        }
+
+        .mission__text strong {
+            font-weight: 700;
+            color: var(--black);
+        }
+
+        .mission__text .green { color: var(--green); }
+
+        /* ---- PROBLEMS SECTION ---- */
+        .problems {
+            padding: 0 2rem 120px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .problems__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: rgba(0,0,0,0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .problem-card {
+            background: #f4f2ee;
+            padding: 48px 36px;
+            transition: background 0.3s;
+        }
+
+        .problem-card:hover { background: #eceae4; }
+
+        .problem-card__num {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.15em;
+            margin-bottom: 2rem;
+        }
+
+        .problem-card__icon {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .problem-card__problem {
+            font-size: 0.75rem;
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .problem-card__title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--black);
+            margin-bottom: 1rem;
+        }
+
+        .problem-card__body {
+            font-size: 0.88rem;
+            color: #5a5a4a;
+            line-height: 1.7;
+        }
+
+        .problem-card__solution {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 0.82rem;
+            color: var(--green);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ---- HOW IT WORKS ---- */
+        .how {
+            background: var(--black);
+            color: var(--white);
+            padding: 120px 2rem;
+        }
+
+        .how__inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .how__label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 4rem;
+        }
+
+        .how__steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 48px;
+        }
+
+        .how-step__num {
+            font-family: 'Space Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            color: rgba(244,242,238,0.08);
+            line-height: 1;
+            margin-bottom: 1.5rem;
+        }
+
+        .how-step__title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--white);
+        }
+
+        .how-step__body {
+            font-size: 0.88rem;
+            color: rgba(244,242,238,0.5);
+            line-height: 1.7;
+        }
+
+        .how-step__divider {
+            width: 40px;
+            height: 2px;
+            background: var(--green);
+            margin-bottom: 1.5rem;
+        }
+
+        /* ---- ABOUT / AUTHOR ---- */
+        .about {
+            padding: 120px 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .about__label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        .about__title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: var(--black);
+            margin-bottom: 1.5rem;
+        }
+
+        .about__body {
+            font-size: 1rem;
+            color: #5a5a4a;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .about__author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 0;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .about__avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .about__author-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--black);
+        }
+
+        .about__author-role {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .about__visual {
+            background: var(--black);
+            border-radius: 20px;
+            padding: 48px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .about__visual::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(26,122,74,0.3) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .about__visual-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            margin-bottom: 1.5rem;
+        }
+
+        .about__visual-quote {
+            font-size: 1.3rem;
+            font-weight: 300;
+            color: var(--white);
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        .about__visual-quote strong {
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        /* ---- CTA SECTION ---- */
+        .cta-section {
+            background: var(--green);
+            padding: 100px 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-section__label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(244,242,238,0.6);
+            margin-bottom: 2rem;
+        }
+
+        .cta-section__title {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: var(--white);
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section__sub {
+            font-size: 1.05rem;
+            color: rgba(244,242,238,0.7);
+            margin-bottom: 3rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-section__buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn-white {
+            background: var(--white);
+            color: var(--green);
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+
+        .cta-btn-white:hover { transform: translateY(-2px); }
+
+        .cta-btn-outline {
+            background: transparent;
+            color: var(--white);
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 1.5px solid rgba(244,242,238,0.4);
+            transition: border-color 0.2s, transform 0.2s;
+            display: inline-block;
+        }
+
+        .cta-btn-outline:hover {
+            border-color: var(--white);
+            transform: translateY(-2px);
+        }
+
+        /* ---- FOOTER ---- */
+        .landing-footer {
+            background: var(--black);
+            padding: 48px 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .landing-footer__logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .landing-footer__copy {
+            font-size: 0.8rem;
+            color: rgba(244,242,238,0.35);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .landing-footer__link {
+            font-size: 0.8rem;
+            color: rgba(244,242,238,0.5);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .landing-footer__link:hover { color: var(--white); }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .problems__grid { grid-template-columns: 1fr; }
+            .how__steps { grid-template-columns: 1fr; gap: 36px; }
+            .about { grid-template-columns: 1fr; gap: 40px; }
+            .hero-footer { flex-direction: column; gap: 32px; align-items: flex-start; }
+            .hero-cta-group { flex-direction: column; align-items: flex-start; }
+            .landing-footer { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADER -->
+    <div class="elp-loader" id="loader">
+        <div class="elp-loader__title">
+            <div class="elp-loader__part" id="part-start">
+                <span class="elp-loader__letter">E</span>
+                <span class="elp-loader__letter">l</span>
+                <span class="elp-loader__letter">i</span>
+                <span class="elp-loader__letter">m</span>
+                <span class="elp-loader__letter">u</span>
+            </div>
+
+            <div class="elp-loader__image-box" id="img-box">
+                <div class="elp-loader__image-inner" id="img-inner">
+                    <div class="elp-loader__image-wrap">
+                        <img class="elp-loader__img fade" src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80" alt="University students studying">
+                        <img class="elp-loader__img" src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80" alt="Students in library">
+                    </div>
+                </div>
+            </div>
+
+            <div class="elp-loader__part" id="part-end">
+                <span class="elp-loader__letter">L</span>
+                <span class="elp-loader__letter">o</span>
+                <span class="elp-loader__letter">c</span>
+                <span class="elp-loader__letter">a</span>
+                <span class="elp-loader__letter">l</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <nav class="hero-nav">
+            <a href="/" class="hero-nav__logo">
+                <span>📚 ElimuLocal</span>
+            </a>
+            <div style="display:flex; align-items:flex-start; gap:48px;">
+                <div class="hero-nav__links">
+                    <a href="#mission" class="hero-nav__link">Mission,</a>
+                    <a href="#how" class="hero-nav__link">How it works,</a>
+                    <a href="#about" class="hero-nav__link">About</a>
+                </div>
+                <div class="hero-nav__cta">
+                    {{if .LoggedIn}}
+                    <a href="/browse" class="hero-nav__btn">Browse Resources</a>
+                    {{else}}
+                    <a href="/register" class="hero-nav__btn">Get Started Free</a>
+                    {{end}}
+                </div>
+            </div>
+        </nav>
+
+        <div class="hero-body">
+            <div class="hero-eyebrow">
+                <span>🇰🇪 Built for Kenyan universities</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="line"><span>Free study materials</span></span>
+                <span class="line"><span>for every <em class="accent">Kenyan</em></span></span>
+                <span class="line"><span>university student.</span></span>
+            </h1>
+        </div>
+
+        <div class="hero-footer">
+            <p class="hero-desc">
+                Notes, past papers and textbooks — shared by students, for students.
+            </p>
+            <div class="hero-cta-group">
+                <a href="/browse" class="btn-primary">Browse Resources</a>
+                <a href="/register" class="btn-ghost">Register Free →</a>
+            </div>
+        </div>
+
+        <div class="scroll-hint">
+            <div class="scroll-hint__line"></div>
+            <span class="scroll-hint__text">scroll</span>
+        </div>
+    </section>
+
+    <!-- LIGHT CONTENT -->
+    <div class="content-below">
+
+        <!-- MISSION -->
+        <section class="mission" id="mission">
+            <p class="mission__label">Our mission</p>
+            <p class="mission__text">
+                Textbooks cost more than most students can afford.
+                Good notes are <strong>trapped in WhatsApp groups</strong>.
+                Internet is unreliable. ElimuLocal was built to fix all three —
+                a <span class="green">free, offline-first platform</span> where
+                students share knowledge with each other, openly and without barriers.
+            </p>
+        </section>
+
+        <!-- PROBLEMS -->
+        <section class="problems">
+            <div class="problems__grid">
+                <div class="problem-card">
+                    <p class="problem-card__num">01</p>
+                    <span class="problem-card__icon">📚</span>
+                    <p class="problem-card__problem">The problem</p>
+                    <h3 class="problem-card__title">Textbooks are too expensive</h3>
+                    <p class="problem-card__body">A single recommended textbook can cost more than a student's entire month's budget. Most students go without.</p>
+                    <p class="problem-card__solution">✓ Free notes and summaries shared by peers</p>
+                </div>
+                <div class="problem-card">
+                    <p class="problem-card__num">02</p>
+                    <span class="problem-card__icon">💬</span>
+                    <p class="problem-card__problem">The problem</p>
+                    <h3 class="problem-card__title">Notes trapped in WhatsApp</h3>
+                    <p class="problem-card__body">Good materials exist but they are buried in chat history, shared only with people who know the right person to ask.</p>
+                    <p class="problem-card__solution">✓ Searchable library organised by course and university</p>
+                </div>
+                <div class="problem-card">
+                    <p class="problem-card__num">03</p>
+                    <span class="problem-card__icon">📶</span>
+                    <p class="problem-card__problem">The problem</p>
+                    <h3 class="problem-card__title">Internet is unreliable</h3>
+                    <p class="problem-card__body">Most edtech solutions require stable internet. On many Kenyan campuses, that is not a given.</p>
+                    <p class="problem-card__solution">✓ Runs on campus WiFi with zero internet needed</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- HOW IT WORKS (dark) -->
+    <section class="how" id="how">
+        <div class="how__inner">
+            <p class="how__label">How it works</p>
+            <div class="how__steps">
+                <div>
+                    <div class="how-step__num">01</div>
+                    <div class="how-step__divider"></div>
+                    <h3 class="how-step__title">Register for free</h3>
+                    <p class="how-step__body">Create an account in under a minute. No email verification, no waiting. Just a username and password and you are in.</p>
+                </div>
+                <div>
+                    <div class="how-step__num">02</div>
+                    <div class="how-step__divider"></div>
+                    <h3 class="how-step__title">Upload your materials</h3>
+                    <p class="how-step__body">Share your notes, past papers, textbook summaries or lecture videos. Tag them by course and university so others can find them easily.</p>
+                </div>
+                <div>
+                    <div class="how-step__num">03</div>
+                    <div class="how-step__divider"></div>
+                    <h3 class="how-step__title">Browse and download</h3>
+                    <p class="how-step__body">Search by keyword, filter by university and category, sort by most helpful. Preview PDFs in the browser or download for offline reading.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT (light) -->
+    <div class="content-below">
+        <section class="about" id="about">
+            <div>
+                <p class="about__label">About the project</p>
+                <h2 class="about__title">Built from a real problem, for real students</h2>
+                <p class="about__body">
+                    ElimuLocal started as a three-month project to solve a problem felt by
+                    every Kenyan university student — the gap between what institutions provide
+                    and what students actually need to succeed. It is built entirely in Go,
+                    runs offline on campus WiFi, and is free to use forever.
+                </p>
+                <div class="about__author">
+                    <div class="about__avatar">R</div>
+                    <div>
+                        <p class="about__author-name">Ryan Kelly</p>
+                        <p class="about__author-role">Developer — Zone01 Kisumu, Kenya</p>
+                    </div>
+                </div>
+            </div>
+            <div class="about__visual">
+                <p class="about__visual-text">// The vision</p>
+                <p class="about__visual-quote">
+                    "Every Kenyan university student deserves access to
+                    <strong>quality study materials</strong> — regardless of
+                    how much money they have or how strong their internet connection is."
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <p class="cta-section__label">Ready to start?</p>
+        <h2 class="cta-section__title">Join ElimuLocal today</h2>
+        <p class="cta-section__sub">Free forever. No credit card. No data charges. Just open your browser and go.</p>
+        <div class="cta-section__buttons">
+            <a href="/register" class="cta-btn-white">Register Free</a>
+            <a href="/browse" class="cta-btn-outline">Browse Without Account</a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="landing-footer">
+        <a href="/" class="landing-footer__logo">📚 ElimuLocal</a>
+        <span class="landing-footer__copy">Built by Ryan Kelly · Zone01 Kisumu · 2026</span>
+        <a href="https://github.com/Rkelly-dot/elimulocal" target="_blank" class="landing-footer__link">GitHub →</a>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const loader = document.getElementById('loader');
+        const imgBox = document.getElementById('img-box');
+        const imgInner = document.getElementById('img-inner');
+        const letters = document.querySelectorAll('.elp-loader__letter');
+        const fadeImg = document.querySelector('.elp-loader__img.fade');
+
+        const tl = gsap.timeline({
+            defaults: { ease: 'expo.inOut' },
+            onComplete: () => {
+                gsap.to(loader, {
+                    opacity: 0,
+                    duration: 0.5,
+                    onComplete: () => { loader.style.display = 'none'; }
+                });
+                // Animate hero elements in
+                gsap.to('.hero-eyebrow span', { y: 0, duration: 1, ease: 'expo.out' });
+                gsap.to('.hero-title .line span', {
+                    y: 0,
+                    duration: 1.2,
+                    ease: 'expo.out',
+                    stagger: 0.08,
+                    delay: 0.1
+                });
+                gsap.to('.hero-nav__logo span', { y: 0, duration: 1, ease: 'expo.out' });
+                gsap.to('.hero-nav__link', {
+                    y: 0,
+                    duration: 1,
+                    ease: 'expo.out',
+                    stagger: 0.07,
+                    delay: 0.1
+                });
+                gsap.to('.hero-nav__cta', { y: 0, duration: 1, ease: 'expo.out', delay: 0.2 });
+                gsap.to('.hero-desc', { y: 0, opacity: 1, duration: 1.2, ease: 'expo.out', delay: 0.4 });
+                gsap.to('.hero-cta-group', { y: 0, opacity: 1, duration: 1.2, ease: 'expo.out', delay: 0.5 });
+            }
+        });
+
+        // Loader animation
+        tl.to(letters, { y: 0, stagger: 0.04, duration: 1 })
+          .to(imgBox, { width: '0.9em', duration: 1.2 }, '<1.2')
+          .to(imgInner, { width: '100%', duration: 1.2 }, '<')
+          .to(fadeImg, { opacity: 0, duration: 0.3, ease: 'none' }, '-=0.3')
+          .to(imgInner, { width: '100vw', height: '100dvh', duration: 1.8 }, '<1.2')
+          .to(imgBox, { width: '110vw', duration: 1.8 }, '<');
+    });
+    </script>
+
+</body>
+</html>
+{{end}}
