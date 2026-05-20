@@ -676,3 +676,98 @@ FROM users WHERE username = ?
 Returns the full user record including the stored hash. Go then uses
 `bcrypt.CompareHashAndPassword()` to check whether the submitted password
 matches that hash — the comparison always happens in Go, never in SQL.
+
+Step 18 — Video Upload and Playback
+Date: May 2026
+Branch: feature/month3
+What we built
+
+Upload size limit increased from 10MB to 500MB to accommodate
+lecture videos
+MP4, MKV and WebM added to the list of accepted file types alongside
+PDF
+Video Lecture added as a category option in the upload form, edit
+form, and search filter dropdown
+Server timeouts increased — ReadTimeout and WriteTimeout both set
+to 5 minutes so large uploads are not cut off mid-transfer
+File input in upload.html updated to show accepted formats and the
+500MB size limit as a hint to the user
+HTML5 video player renders automatically in preview.html when the
+file extension is .mp4, .mkv, or .webm
+map[string]bool used for file type validation — cleaner and more
+maintainable than a long boolean expression
+
+Key decisions
+Why 500MB and not unlimited?
+An unlimited upload size means a single student could accidentally or
+maliciously upload a file that fills the entire server disk. 500MB is
+large enough for a full lecture recording at reasonable quality while
+still protecting against runaway disk usage.
+Why add Video Lecture as a separate category?
+A student filtering for Notes or Past Papers should not see video files
+in their results — the format is completely different. A dedicated category
+keeps filtering accurate. Students looking for a quick text summary do not
+want a 400MB video appearing in their results.
+Why increase server timeouts?
+A 400MB upload on a slow campus WiFi connection can take several minutes.
+Go's default timeouts would cut the connection before the upload finishes,
+leaving the student with a confusing error after waiting several minutes.
+Go concepts introduced
+
+map[string]bool as a set for allowed file types — cleaner than a long
+boolean expression, adding a new type means adding one line to the map
+500 << 20 — bitwise left shift, Go idiom for expressing file sizes in
+bytes, 1 << 20 equals exactly one megabyte so 500 << 20 is exactly
+500 megabytes
+&http.Server{} — explicit server struct allowing custom ReadTimeout,
+WriteTimeout and IdleTimeout values essential for large file handling
+
+
+Landing Page
+Date: May 2026
+Branch: feature/month3
+What we built
+
+Complete standalone landing page at / — the new first impression of
+ElimuLocal for students, administrators and investors
+GSAP-powered loading animation — ElimuLocal splits open with a
+university photo expanding between the two halves of the name
+Dark hero section with animated headline, navigation links and two
+call-to-action buttons — Browse Resources and Register Free
+Mission statement section explaining the three problems ElimuLocal
+solves in large editorial typography
+Three problem and solution cards — expensive textbooks, notes trapped
+in WhatsApp, unreliable internet — each paired with the ElimuLocal fix
+How it works section — three numbered steps
+About section with author name, role at Zone01 Kisumu, and a vision
+quote
+Green call-to-action section at the bottom
+Dark footer with GitHub link
+Old / browse route moved to /browse — the landing page is now the
+entry point for new visitors
+Logged-in users see Browse Resources in the hero nav instead of
+Get Started Free — the page adapts to session state
+renderLanding() helper renders the landing template independently
+from base.html since the landing page has its own full HTML
+structure, fonts and scripts
+
+Key decisions
+Why a standalone template and not base.html?
+The landing page has a completely different visual style — dark hero,
+GSAP animations, its own nav structure. Forcing it into base.html
+would require overriding almost everything base.html provides. A
+standalone template is cleaner and easier to maintain independently.
+Why move / to /browse?
+A returning student who bookmarks the browse page should land directly
+on resources without clicking through the landing page every time. The
+landing page serves new visitors. /browse serves regular users.
+Why show different nav buttons based on login state?
+A logged-in student seeing Register Free is confusing — they already have
+an account. Showing Browse Resources instead is contextually correct and
+routes them directly to what they came to do.
+Why GSAP for the animation?
+CSS animations alone cannot achieve the letter-splitting reveal with a
+photo expanding between the halves — that requires JavaScript to
+coordinate multiple elements simultaneously with precise timing. GSAP
+is the industry standard for this type of animation and loads from a
+CDN with no installation needed.
