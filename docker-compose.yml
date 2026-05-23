@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - ./elimulocal.db:/app/elimulocal.db
+      - ./uploads:/app/uploads
+      - ./static/pdfjs:/app/static/pdfjs
+
+    restart: unless-stopped
