@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	_ "modernc.org/sqlite"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 type Resource struct {
@@ -324,7 +324,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 					defer dst.Close()
 					io.Copy(dst, file)
 					if fileName != "" {
-						os.Remove(filepath.Join("uploads", fileName))
+						deleteFile(resource.FileName)
 					}
 					fileName = newFileName
 				}
@@ -381,7 +381,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resource.FileName != "" {
-		os.Remove(filepath.Join("uploads", resource.FileName))
+		deleteFile(resource.FileName)
 	}
 
 	db.Exec("DELETE FROM resources WHERE id = ? AND user_id = ?", id, currentUser.ID)
@@ -557,23 +557,15 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-		filePath := filepath.Join("uploads", fileName)
 
-		dst, err := os.Create(filePath)
+		err = uploadFile(fileName, file, "application/octet-stream")
 		if err != nil {
-			data := PageData{
-				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Could not save file. Please try again.",
-				Universities: getUniversities(),
-				CurrentUser:  currentUser,
-				LoggedIn:     loggedIn,
-			}
+			data := newPageData(r, "Share a Resource - ElimuLocal")
+			data.Message = "Could not save file. Please try again."
+			data.Universities = getUniversities()
 			renderTemplate(w, "upload.html", data)
 			return
 		}
-		defer dst.Close()
-
-		_, err = io.Copy(dst, file)
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
@@ -636,8 +628,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := filepath.Join("uploads", fileName)
-
 	var id int
 	fmt.Sscan(idStr, &id)
 	incrementDownloads(id)
@@ -645,7 +635,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename="+title+".pdf")
 	w.Header().Set("Content-Type", "application/pdf")
 
-	http.ServeFile(w, r, filePath)
+	err = serveFile(fileName, w)
+	if err != nil {
+		http.Error(w, "Could not retrieve file", http.StatusInternalServerError)
+		return
+	}
 }
 
 func renderTemplate(w http.ResponseWriter, page string, data PageData) {
@@ -721,7 +715,6 @@ func streamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := filepath.Join("uploads", fileName)
 	ext := strings.ToLower(filepath.Ext(fileName))
 
 	switch ext {
@@ -738,7 +731,11 @@ func streamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Disposition", "inline; filename=\""+title+"\"")
-	http.ServeFile(w, r, filePath)
+	err = serveFile(fileName, w)
+	if err != nil {
+		http.Error(w, "Could not retrieve file", http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {
