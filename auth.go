@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/gob"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -10,7 +11,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var store = sessions.NewCookieStore([]byte("elimulocal-secret-key-change-in-production"))
+func sessionSecret() []byte {
+	if s := os.Getenv("SESSION_SECRET"); s != "" {
+		return []byte(s)
+	}
+	return []byte("elimulocal-secret-key-change-in-production")
+}
+
+var store = sessions.NewCookieStore(sessionSecret())
 
 func init() {
 	gob.Register(int(0))

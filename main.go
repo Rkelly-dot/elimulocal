@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 type Resource struct {
@@ -51,52 +53,31 @@ var db *sql.DB
 func initDB() {
 	var err error
 
-	db, err = sql.Open("sqlite", "elimulocal.db")
-	if err != nil {
-		log.Fatal("Could not open database:", err)
+	tursoURL := os.Getenv("TURSO_URL")
+	tursoToken := os.Getenv("TURSO_TOKEN")
+
+	if tursoURL != "" && tursoToken != "" {
+		connStr := tursoURL + "?authToken=" + tursoToken
+		db, err = sql.Open("libsql", connStr)
+		if err != nil {
+			log.Fatal("Could not open Turso database:", err)
+		}
+		fmt.Println("Connected to Turso cloud database")
+		runMigrations(db)
+	} else {
+		dbPath := os.Getenv("DB_PATH")
+		if dbPath == "" {
+			dbPath = "elimulocal.db"
+		}
+		db, err = sql.Open("sqlite", dbPath)
+		if err != nil {
+			log.Fatal("Could not open local database:", err)
+		}
+		fmt.Println("Connected to local SQLite database")
+		runMigrations(db)
 	}
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatal("Could not connect to database:", err)
-	}
-
-	createUsersTable()
-	createTable := `
-	CREATE TABLE IF NOT EXISTS resources (
-		id          INTEGER PRIMARY KEY AUTOINCREMENT,
-		title       TEXT NOT NULL,
-		course      TEXT NOT NULL,
-		university  TEXT NOT NULL,
-		category    TEXT NOT NULL,
-		description TEXT,
-		uploaded_by TEXT,
-		uploaded_at TEXT,
-		file_name   TEXT,
-		downloads   INTEGER DEFAULT 0
-	);`
-
-	_, err = db.Exec(createTable)
-	if err != nil {
-		log.Fatal("Could not create table:", err)
-	}
-
-	// Migration: link existing resources to users when uploaded_by matches a username
-	_, _ = db.Exec(`
-	UPDATE resources
-	SET user_id = (SELECT id FROM users WHERE username = resources.uploaded_by)
-	WHERE user_id = 0
-	  AND EXISTS (SELECT 1 FROM users WHERE username = resources.uploaded_by);
-	`)
-
-	seedDB()
-
-	fmt.Println("Database ready — elimulocal.db")
 }
-
 func seedDB() {
-	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0")
-	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN user_id INTEGER DEFAULT 0")
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
 	if err != nil {
@@ -761,6 +742,9 @@ func streamHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Load .env file (silently ignored if not present)
+	_ = godotenv.Load()
+
 	initDB()
 
 	fs := http.FileServer(http.Dir("static"))
@@ -779,12 +763,17 @@ func main() {
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	fmt.Println("ElimuLocal is running!")
-	fmt.Println("Open your browser and go to: http://localhost:8080")
+	fmt.Printf("Open your browser and go to: http://localhost:%s\n", port)
 	fmt.Println("Press Ctrl+C to stop the server.")
 
 	server := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":" + port,
 		ReadTimeout:  300 * time.Second,
 		WriteTimeout: 300 * time.Second,
 		IdleTimeout:  120 * time.Second,
