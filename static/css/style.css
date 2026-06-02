@@ -44,11 +44,13 @@ body {
     line-height: 1.6;
 }
 .navbar {
-    background: var(--white);
+    background: #ffffff;
     border-bottom: 1px solid var(--border);
     position: sticky;
-     top: 0;
-    z-index: 100;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    isolation: isolate;
 }
 
 .nav-inner {
@@ -497,5 +499,180 @@ footer {
     .nav-inner {
         padding-left: 12px;
         padding-right: 12px;
+    }
+}
+/* ---- AUTH NAV ---- */
+.nav-links {
+    display: flex;
+    align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+}
+
+.nav-user {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.nav-link {
+        width: auto;
+        flex-shrink: 1;
+        text-align: center;
+        padding-left: 12px;
+        padding-right: 12px;
+    transition: color 0.2s;
+    .nav-inner {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .nav-links {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .nav-logout {
+        margin-left: auto;
+    }
+
+    .nav-user {
+        flex-basis: 100%;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+}
+
+.nav-logout {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.88rem;
+    transition: color 0.2s;
+}
+
+.nav-logout:hover {
+    color: var(--red);
+}
+.edit-btn {
+    background: var(--white);
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.edit-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.delete-btn {
+    background: var(--white);
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.delete-btn:hover {
+    border-color: var(--red);
+    color: var(--red);
+}
+/* ---- PREVIEW PAGE ---- */
+.preview-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 24px 48px;
+}
+
+.preview-header {
+    margin-bottom: 20px;
+}
+
+.preview-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.preview-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 8px 0 10px;
+    color: var(--text);
+}
+
+.preview-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.preview-container {
+    width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--white);
+    min-height: 80vh;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 80vh;
+    border: none;
+    display: block;
+}
+
+.video-player {
+    width: 100%;
+    max-height: 80vh;
+    background: #000;
+    display: block;
+}
+
+.preview-fallback {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+/* Show fallback only when embed fails — detected via CSS */
+embed:not([src]) + .preview-fallback {
+    display: block;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+    .preview-title {
+        font-size: 1.2rem;
+    }
+
+    .pdf-viewer {
+        height: 60vh;
+    }
+
+    .preview-title-row {
+        flex-direction: column;
     }
 }

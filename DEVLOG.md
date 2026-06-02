@@ -1,20 +1,18 @@
 # ElimuLocal — Developer Log
 
-This file documents the building of ElimuLocal step by step.
-It records what was built, why decisions were made, and what was learned.
+This file documents the building of **ElimuLocal** step by step. It records what was built, why decisions were made, and what was learned along the way.
 
 ---
 
-## Step 1 — Project setup
-**Date:** March 2025
-**Branch:** feature/initial-setup
+## Step 1 — Project Setup
+**Date:** March 2025  
+**Branch:** `feature/initial-setup`
 
 ### What we built
-- Created the project folder structure
-- Initialised Go module with `go mod init elimulocal`
-- Wrote the first `main.go` — a minimal server that responds with
-  "ElimuLocal is working!"
-- Set up Git and pushed to GitHub
+- Created the project folder structure.
+- Initialized Go module with `go mod init elimulocal`.
+- Wrote the first `main.go` — a minimal server that responds with "ElimuLocal is working!".
+- Set up Git and pushed to GitHub.
 
 ### Folder structure created
 ```
@@ -29,352 +27,254 @@ elimulocal/
 ```
 
 ### Go concepts introduced
-- `package main` — entry point of every Go program
-- `import` — bringing in built-in packages
-- Functions — `func homeHandler(...)`
-- `http.HandleFunc` — connecting URLs to functions
-- `http.ListenAndServe` — starting the web server
+- `package main` — Entry point of every Go program.
+- `import` — Bringing in built-in packages.
+- **Functions** — Defining behavior like `func homeHandler(...)`.
+- `http.HandleFunc` — Connecting URLs to functions.
+- `http.ListenAndServe` — Starting the web server.
 
 ---
 
-## Step 2 — HTML templates and CSS
-**Date:** March 2025
-**Branch:** feature/initial-setup
+## Step 2 — HTML Templates and CSS
+**Date:** March 2025  
+**Branch:** `feature/initial-setup`
 
 ### What we built
-- Created three HTML templates: `base.html`, `home.html`, `upload.html`
-- Wrote `style.css` with full styling for the homepage and upload form
-- Updated `main.go` to render templates with dynamic data
-- Added `Resource` and `PageData` structs
-- Added search and university filter functionality
+- Created three HTML templates: `base.html`, `home.html`, `upload.html`.
+- Wrote `style.css` with full styling for the homepage and upload form.
+- Updated `main.go` to render templates with dynamic data.
+- Added `Resource` and `PageData` structs.
+- Added search and university filter functionality.
 
 ### Key decisions
-- Used Go's `html/template` package instead of a third party library —
-  keeps dependencies at zero and is built into Go
-- Used `{{define "base"}}` and `{{template "content" .}}` pattern so
-  navbar and footer are written once and shared across all pages
-- Used `<datalist>` for university autocomplete instead of a hardcoded
-  `<select>` — universities grow automatically as students submit
-- Used `method="GET"` for search so searches are bookmarkable URLs
-- Used `method="POST"` for uploads because they change data
+- **Standard Library:** Used Go's `html/template` package instead of a third-party library to keep dependencies at zero.
+- **Template Composition:** Used `{{define "base"}}` and `{{template "content" .}}` pattern so navbar and footer are written once and shared.
+- **University Autocomplete:** Used `<datalist>` for university suggestions instead of a hardcoded `<select>` so the list grows automatically.
+- **HTTP Methods:** Used `GET` for search (bookmarkable URLs) and `POST` for uploads (data modification).
 
 ### Go concepts introduced
-- Structs — `type Resource struct` and `type PageData struct`
-- Slices — `[]Resource` for storing multiple resources
-- Maps — `map[string]bool` for deduplication in `getUniversities()`
-- Range loops — `for _, r := range resources`
-- String operations — `strings.Contains`, `strings.EqualFold`,
-  `strings.TrimSpace`, `strings.ToLower`
-- Error handling — `if err != nil`
-- HTTP methods — checking `r.Method == "GET"` vs `"POST"`
-- Template rendering — `template.ParseFiles` and `ExecuteTemplate`
-- Serving static files — `http.FileServer` and `http.StripPrefix`
-
-### CSS concepts introduced
-- CSS variables — `:root` and `var(--name)`
-- Flexbox layout — `display: flex`, `justify-content`, `align-items`
-- Responsive design — `@media (max-width: 640px)`
-- Hover and focus states — `:hover`, `:focus`
-- CSS transitions for smooth animations
-- `position: sticky` for the navbar
+- **Structs** — Data modeling with `type Resource struct`.
+- **Slices** — Dynamic arrays like `[]Resource`.
+- **Maps** — Key-value pairs for deduplication in `getUniversities()`.
+- **Range loops** — Iterating over collections.
+- **Strings package** — Operations like `strings.Contains` and `strings.ToLower`.
+- **Template rendering** — Using `ParseFiles` and `ExecuteTemplate`.
 
 ---
 
-## Step 3 — SQLite database
-**Date:** April 2025
-**Branch:** feature/initial-setup
-
-### What we are building
-Replacing the in-memory Go slice with a real SQLite database so that
-resources survive server restarts.
-
-### Why SQLite and not PostgreSQL or MySQL
-- SQLite requires zero setup — it is just a file on disk
-- No separate database server process needed
-- Fast enough for hundreds of concurrent students on a LAN
-- The entire database is one file — easy to back up, move, or copy
-- Can upgrade to PostgreSQL later if the app grows beyond one campus
-
-### SQL commands we will use
-- `CREATE TABLE` — create the resources table once at startup
-- `INSERT INTO` — save a new resource when someone uploads
-- `SELECT` — read resources when someone browses or searches
-## Step 3 — SQLite database and file uploads
-**Date:** April 2025
-**Branch:** feature/initial-setup
+## Step 3 — SQLite Database and File Uploads
+**Date:** April 2025  
+**Branch:** `feature/initial-setup`
 
 ### What we built
-- Added SQLite database using `modernc.org/sqlite` package
-- Created `resources` table with all fields
-- Replaced in-memory slice with real database reads and writes
-- Real PDF file uploads — files saved to uploads/ folder on disk
-- Real file downloads — students can download uploaded PDFs
-- Download counter increments every time a file is downloaded
-- Seed data added automatically on first run
-- Data survives server restarts permanently
-
-### New functions added to main.go
-- `initDB()` — opens database connection and creates table
-- `seedDB()` — adds starter data if database is empty
-- `saveResource()` — inserts a new resource row into the database
-- `getResources()` — reads and filters resources from the database
-- `getUniversities()` — reads unique university names from the database
-- `incrementDownloads()` — updates download count when file is downloaded
-- `downloadHandler()` — serves PDF files to the browser
+- Added SQLite database using the `modernc.org/sqlite` (pure Go) package.
+- Created `resources` table to persist data across restarts.
+- Implemented real PDF file uploads saved to the `uploads/` folder.
+- Added file download functionality with a download counter.
+- Automatic database seeding on first run.
 
 ### SQL commands learned
-- `CREATE TABLE IF NOT EXISTS` — creates table safely on every startup
-- `INSERT INTO ... VALUES (?, ?, ...)` — adds a new row
-- `SELECT ... FROM ... WHERE ... LIKE ?` — reads and filters rows
-- `SELECT DISTINCT` — returns unique values only
-- `UPDATE ... SET ... WHERE` — modifies an existing row
-- `SELECT COUNT(*)` — counts rows in a table
-- `ORDER BY id DESC` — sorts newest first
+- `CREATE TABLE IF NOT EXISTS` — Safe table initialization.
+- `INSERT INTO ... VALUES` — Adding new records.
+- `SELECT ... WHERE ... LIKE` — Filtering data.
+- `UPDATE ... SET` — Modifying existing rows.
 
 ### Key decisions
-- Used `modernc.org/sqlite` — pure Go driver, no C compiler needed
-- Used `?` placeholders in all SQL queries — prevents SQL injection
-- Used `time.Now().UnixNano()` for unique filenames — prevents overwrites
-- Used `io.Copy()` for file saving — handles large files without loading
-  them entirely into memory
-- Used `defer rows.Close()` and `defer file.Close()` — ensures cleanup
-  always happens even if an error occurs
-
-### Go concepts introduced
-- Blank import `_ "modernc.org/sqlite"` — runs init without direct use
-- `database/sql` package — Go's standard database interface
-- `db.Exec()` — runs SQL that does not return rows
-- `db.Query()` — runs SQL that returns multiple rows
-- `db.QueryRow()` — runs SQL that returns exactly one row
-- `rows.Scan()` — reads a database row into Go variables
-- `&variable` — passing a pointer so Scan can write into the variable
-- `defer` — guarantees cleanup code runs when a function ends
-- `r.ParseMultipartForm()` — prepares Go to handle file uploads
-- `r.FormFile()` — retrieves an uploaded file from the request
-- `os.Create()` — creates a new file on disk
-- `io.Copy()` — copies data from one stream to another
-- `filepath.Join()` — builds file paths correctly for the OS
-- `filepath.Ext()` — gets the file extension
-- `10 << 20` — bitwise shift used to express 10MB in bytes
-## Step 4 — Local fonts
-**Date:** April 2025
-**Branch:** feature/initial-setup
-
-### What we built
-- Downloaded Sora (Regular and SemiBold) and Space Mono font files
-- Added @font-face rules to style.css to load fonts from local disk
-- Removed Google Fonts dependency completely
-- App now works with zero internet connection on campus LAN
-
-### Why this matters
-- Students on campus WiFi with no internet can still use the full app
-- No external requests means faster load times on slow networks
-- No dependency on Google's servers being available
+- **Pure Go Driver:** Used `modernc.org/sqlite` to avoid needing a C compiler (CGO_ENABLED=0).
+- **Security:** Used `?` placeholders in SQL queries to prevent SQL injection.
+- **Unique Filenames:** Used `time.Now().UnixNano()` to prevent file name collisions.
+- **Efficiency:** Used `io.Copy()` for file saving to handle large files without high memory usage.
 
 ---
 
-## Month 1 — COMPLETE
-**Date:** April 2025
+## Step 4 — Local Fonts
+**Date:** April 2025  
+**Branch:** `feature/initial-setup`
 
-### Month 1 checklist
+### What we built
+- Downloaded **Sora** and **Space Mono** font files.
+- Added `@font-face` rules to `style.css` to load fonts from local disk.
+- Removed Google Fonts dependency entirely.
+
+### Why this matters
+- **Offline Capability:** The app now works on a campus LAN with zero internet connection.
+- **Performance:** Faster load times on slow networks as no external requests are made.
+
+---
+
+## Month 1 — COMPLETE ✅
+**Status:** Architecture and Core Features Stable
+
 - [x] Project setup and folder structure
 - [x] HTML templates and CSS styling
 - [x] Dynamic university list
-- [x] SQLite database
-- [x] Real file uploads
-- [x] Real file downloads
-- [x] Local fonts — no internet dependency
+- [x] SQLite database integration
+- [x] Real file uploads and downloads
+- [x] Local fonts (internet-independent)
 
-### What ElimuLocal can do at end of Month 1
-- Run on a campus LAN with no internet
-- Accept PDF uploads from teachers and students
-- Store resources permanently in a database
-- Serve files for download
-- Search and filter resources
-- Auto-populate university suggestions
-- Look like a real product with custom fonts and styling
+---
 
-Step 7 — Improved search and filtering
-Date: April 2025
-Branch: feature/month2-improvements
-What we built
+## Step 7 — Improved Search and Filtering
+**Date:** April 2025  
+**Branch:** `feature/month2-improvements`
 
-Added category filter dropdown to the search form
-(All Categories / Notes / Past Paper / Textbook / Summary / Other)
-Added sort dropdown to the search form
-(Newest first / Most downloaded / Most helpful / Oldest first)
-Dropdowns remember their selected value after form submission
-Added "✕ Clear filters" link that appears when any filter is active
-Added count badge showing how many results were found
-Updated getResources() to accept category and sort parameters
-Updated PageData struct with Search, University, Category, Sort fields
+### What we built
+- Added category filter dropdown (Notes, Past Paper, Textbook, etc.).
+- Added sort options (Newest, Most Downloaded, Most Helpful).
+- Persistent filters after form submission.
+- Added "Clear filters" link and a results counter badge.
 
-Key decisions
+### Go concepts introduced
+- **Switch statements** — Cleaner logic for sort ordering.
+- **Dynamic SQL** — Building queries conditionally using `[]interface{}` for arguments.
 
-Used {{if eq .Category "Notes"}}selected{{end}} pattern to keep
-dropdowns showing the active filter after search — without this the
-dropdown resets every time which is very annoying UX
-Used a switch statement for sort order — cleaner than if/else chain
-Used LIKE ? with %search% pattern for partial text matching in SQL
+---
 
-Go concepts introduced
+## Step 8 — Ratings and Upvotes
+**Date:** April 2025  
+**Branch:** `feature/month2-improvements`
 
-switch statement — cleaner alternative to multiple if/else blocks
-Building SQL queries dynamically — appending WHERE clauses conditionally
-[]interface{} — slice that can hold values of any type, used for
-SQL query arguments when we do not know how many there will be
+### What we built
+- Added `upvotes` column to the `resources` table.
+- Implemented a "Helpful" button that increments the vote count via `POST /upvote/{id}`.
+- Smart redirects using the `Referer` header to keep users on their current search page.
 
-SQL concepts introduced
+---
 
-LIKE '%keyword%' — partial text matching (% is a wildcard)
-ORDER BY column ASC/DESC — sorting results
-ORDER BY downloads DESC — sort by most downloaded first
+## Step 10 — Success and Error Flash Messages
+**Date:** April 2025  
+**Branch:** `feature/month2-improvements`
 
+### What we built
+- Added a success flash message that appears after an upload.
+- Used URL query parameters (`?success=1`) for simple state signaling.
+- Implemented a JavaScript fade-out effect for the message div.
 
-Step 8 — Ratings and upvotes
-Date: April 2025
-Branch: feature/month2-improvements
-What we built
+---
 
-Added upvotes column to the resources table using ALTER TABLE
-Added 👍 Helpful (count) button to every resource card
-Clicking the button increments the upvote count in the database
-Added "Most helpful" sort option to show most upvoted resources first
-Added incrementUpvotes() function in main.go
-Added upvoteHandler to handle POST /upvote/{id} requests
+## Step 11 — Campus LAN Deployment
+**Date:** April 2025  
+**Branch:** `feature/month2-improvements`
 
-How the upvote flow works
-Student clicks 👍 Helpful
-    → browser sends POST /upvote/3
-    → upvoteHandler extracts ID from URL
-    → incrementUpvotes(3) runs UPDATE SQL
-    → redirects back to the page the student was on
-    → student sees updated count
-Key decisions
+### What we did
+- Identified the server's local IP address.
+- Verified firewall settings.
+- Successfully accessed ElimuLocal on mobile devices via campus WiFi.
 
-Used ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0
-with _, _ = db.Exec(...) to safely add the column to an existing
-database — ignoring the error if the column already exists
-Used r.Header.Get("Referer") for redirect — sends student back to
-whatever page they were on, preserving their search filters
-Used POST not GET for upvoting — upvoting changes data so it must
-be a POST request, not a link
+---
 
-Go concepts introduced
+## Step 12 — Mobile Navbar Fixes
+**Date:** April 2025  
+**Branch:** `feature/month2-improvements`
 
-ALTER TABLE for modifying existing database tables safely
-r.Header.Get("Referer") — reading the previous page URL from
-the request headers for smart redirects
+### What we did
+- Patched CSS to prevent branding text from breaking on small screens.
+- Implemented flex-wrapping for the navbar so buttons stack appropriately on mobile.
 
+---
 
-Step 9 — Download counter on cards
-Date: April 2025
-Branch: feature/month2-improvements
-What we built
+## Month 2 — COMPLETE ✅
+**Status:** UX Improvements and Real-world Testing
 
-Display the download count on every resource card
-Counter was already being tracked in the database since Month 1 —
-this step simply surfaced the number in the UI
+- [x] Enhanced search with categories and sorting
+- [x] Upvote/Rating system
+- [x] Success flash messages
+- [x] Mobile responsiveness fixes
+- [x] Verified deployment on campus LAN
 
-What was learned
-This step was intentionally simple — it demonstrated that good data
-modelling pays off. Because we stored downloads in the database from
-day one, showing the count was a single line of HTML. No backend
-changes needed at all.
+---
 
-Step 10 — Success and error flash messages
-Date: April 2025
-Branch: feature/month2-improvements
-What we built
+## Step 15 — User Authentication
+**Date:** May 2026  
+**Branch:** `feature/month3`
 
-Green success message appears at top of homepage after upload:
-"✅ Resource uploaded successfully!"
-Message fades out automatically after 4 seconds using JavaScript
-Added deleted confirmation message for future delete feature
-Used URL query parameter ?success=1 to pass the message signal
-from the upload redirect to the home page
+### What we built
+- Created `auth.go` to isolate authentication logic.
+- Implemented User Registration, Login, and Logout.
+- Added session management using `github.com/gorilla/sessions`.
+- Dynamic navbar that shows the current user and session state.
+- Password hashing with `bcrypt`.
 
-How flash messages work
-1. Upload succeeds
-2. Go redirects to /?success=1
-3. homeHandler reads r.URL.Query().Get("success")
-4. Sets message in PageData
-5. home.html shows the message div
-6. JavaScript setTimeout fades it out after 4 seconds
-Key decisions
+### Challenges & Solutions
+- **Compilation:** Switched from `go run main.go` to `go run .` to compile multiple files.
+- **Session Decoding:** Registered `int` type with `encoding/gob` to fix silent session failures.
+- **Inconsistent Navbar:** Created `newPageData()` helper to ensure session state is passed to all templates.
 
-Used URL query parameter instead of cookies or sessions — simpler
-and works without any session management infrastructure
-Used JavaScript for fade-out — CSS alone cannot remove an element
-after a time delay
-setTimeout with two nested calls — first fades opacity over 1
-second, then sets display:none after the fade completes
+### SQL Reference
+- **Users Table:** Created with `UNIQUE` constraints on username and email.
+- **Password Safety:** Only `password_hash` is stored; raw passwords never touch the DB.
 
-JavaScript concepts introduced
+---
 
-setTimeout(function, milliseconds) — run code after a delay
-element.style.transition — smooth CSS property changes via JS
-element.style.opacity — change transparency
-element.style.display = 'none' — hide element completely
+## Step 18 — Video Upload and Playback
+**Date:** May 2026  
+**Branch:** `feature/month3`
 
-Step 11 — Campus LAN deployment
-Date: April 2025
-Branch: feature/month2-improvements
-What we did
+### What we built
+- Increased upload limit from **10MB to 500MB** for lecture videos.
+- Added support for `.mp4`, `.mkv`, and `.webm` files.
+- Implemented an HTML5 video player in the resource preview page.
+- Increased server `ReadTimeout` and `WriteTimeout` to 5 minutes to support slow uploads.
 
-Found the laptop's local IP address using ip addr show
-Confirmed firewall was inactive (ufw status showed inactive)
-Started the server and shared the link with a real device
-Tested ElimuLocal on a phone over campus WiFi
+---
 
-Result
-ElimuLocal loaded successfully on a phone at http://192.168.89.223:8080.
-All features worked on mobile — search, filter, browse, upload form.
-Minor navbar layout issue on small screens noted for Step 12.
-How campus LAN works
-Your laptop runs go run main.go
-    → Go listens on :8080 (all network interfaces)
-    → Campus router assigns your laptop IP 192.168.89.223
-    → Student phone connects to same WiFi
-    → Student opens http://192.168.89.223:8080
-    → Phone sends request across WiFi to your laptop
-    → Go responds with the ElimuLocal page
-    → No internet involved at any point
-Commands learned
+## Step 19 — Animated Landing Page
+**Date:** May 2026  
+**Branch:** `feature/month3`
 
-ip addr show | grep "inet " — find your local IP address
-sudo ufw status — check if the firewall is blocking connections
+### What we built
+- Created a standalone, premium landing page at `/`.
+- Integrated **GSAP** for a high-end "letter-splitting" reveal animation on load.
+- Added sections for "Mission Statement", "Problems & Solutions", and "Mission Vision".
+- Moved the main resource listing to `/browse`.
+- Dynamic Call-to-Action (CTA) buttons that change based on login status.
 
-Step 12-Fix mobile navbar layout
-Date: April 2025
-Branch: feature/month2-improvements
-what we did
+### Design Decisions
+- **Standalone Template:** Used a separate template for the landing page to allow for a unique visual style (dark mode, custom animations) without bloating `base.html`.
+- **GSAP:** Chosen for its ability to coordinate complex multi-element animations with high performance.
 
-I patched the stylesheet to stop the brand from breaking and prevent the button overlap on screens
-Applied a small CSS patch by allowing wrapping and making the share button stack on very small screen.This helped keep the brand on one line and make the header responsive
+---
 
-Result
-ElimuLocal ran successfully on a mobile phone and the navbar was not cramped
+## Step 20 — Environment Configuration & Dockerization
+**Date:** May 2026  
+**Branch:** `feature/deployment-ready`
 
-Month 2
-Date: April 2025
-Month 2 checklist
+### What we built
+- Standardized environment variables using a `.env` file.
+- Added support for configuring Port, Database path, Session secrets, and Upload limits via environment.
+- Created a `Dockerfile` for containerized deployment.
+- Added `docker-compose.yml` for easy local development setup.
 
- Step 7  — Improved search with category filter and sort options
- Step 8  — Upvote / helpful rating system
- Step 9  — Download counter displayed on resource cards
- Step 10 — Success flash messages after upload
- Step 11 — Deployed on campus LAN, tested on real phone
- Step 12 — Fix mobile navbar layout
- Step 13 — Merge Month 2 into main branch
+### Benefits
+- **Security:** Secrets are no longer hardcoded in the source.
+- **Portability:** The app can now be run anywhere with `docker compose up`.
 
-What ElimuLocal can do at end of Month 2
+---
 
-Filter resources by category (Notes, Past Paper, Textbook etc.)
-Sort resources by newest, most downloaded, most helpful, oldest
-Upvote helpful resources — community quality signal
-See download counts on every resource card
-Get clear feedback after uploading a resource
-Run live on a campus WiFi network accessible from any device
-Tested and working on a real Android phone
+## Step 21 — Database Migration System
+**Date:** May 2026  
+**Branch:** `feature/migrations`
 
+### What we built
+- Created a robust migration runner in `migrate.go`.
+- Tracks applied migrations in a `schema_migrations` table.
+- Migrations are stored as plain SQL files in the `migrations/` directory.
+- Ensuring migrations run in a transaction to prevent partial state on failure.
+
+### Current Migrations
+1. `001_create_users.sql` — Initial user table schema.
+2. `002_create_resources.sql` — Main resources table with audit fields.
+3. `003_backfill_user_id.sql` — Linking existing resources to user accounts.
+
+---
+
+## Month 3 — IN PROGRESS 🏗️
+**Focus:** Scalability and Production Readiness
+
+- [x] User Authentication system
+- [x] Video support (500MB)
+- [x] Premium Landing Page
+- [x] Environment configuration
+- [x] Database migrations
+- [ ] Multi-tenant support (University separation)
+- [ ] Cloud storage integration (Turso/B2)

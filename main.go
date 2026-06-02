@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
 
@@ -26,7 +28,8 @@ type Resource struct {
 	UploadedAt  string
 	FileName    string
 	Downloads   int
-	Upvotes    int
+	Upvotes     int
+	UserID      int
 }
 
 type PageData struct {
@@ -38,6 +41,11 @@ type PageData struct {
 	University   string
 	Category     string
 	Sort         string
+	Resource     Resource
+	CurrentUser  User
+	LoggedIn     bool
+	IsVideo      bool
+	MimeType     string
 }
 
 var db *sql.DB
@@ -45,42 +53,31 @@ var db *sql.DB
 func initDB() {
 	var err error
 
-	db, err = sql.Open("sqlite", "elimulocal.db")
-	if err != nil {
-		log.Fatal("Could not open database:", err)
+	tursoURL := os.Getenv("TURSO_URL")
+	tursoToken := os.Getenv("TURSO_TOKEN")
+
+	if tursoURL != "" && tursoToken != "" {
+		connStr := tursoURL + "?authToken=" + tursoToken
+		db, err = sql.Open("libsql", connStr)
+		if err != nil {
+			log.Fatal("Could not open Turso database:", err)
+		}
+		fmt.Println("Connected to Turso cloud database")
+		runMigrations(db)
+	} else {
+		dbPath := os.Getenv("DB_PATH")
+		if dbPath == "" {
+			dbPath = "elimulocal.db"
+		}
+		db, err = sql.Open("sqlite", dbPath)
+		if err != nil {
+			log.Fatal("Could not open local database:", err)
+		}
+		fmt.Println("Connected to local SQLite database")
+		runMigrations(db)
 	}
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatal("Could not connect to database:", err)
-	}
-
-	createTable := `
-	CREATE TABLE IF NOT EXISTS resources (
-		id          INTEGER PRIMARY KEY AUTOINCREMENT,
-		title       TEXT NOT NULL,
-		course      TEXT NOT NULL,
-		university  TEXT NOT NULL,
-		category    TEXT NOT NULL,
-		description TEXT,
-		uploaded_by TEXT,
-		uploaded_at TEXT,
-		file_name   TEXT,
-		downloads   INTEGER DEFAULT 0
-	);`
-
-	_, err = db.Exec(createTable)
-	if err != nil {
-		log.Fatal("Could not create table:", err)
-	}
-
-	seedDB()
-
-	fmt.Println("Database ready — elimulocal.db")
 }
-
 func seedDB() {
-	_, _ = db.Exec("ALTER TABLE resources ADD COLUMN upvotes INTEGER DEFAULT 0")
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM resources").Scan(&count)
 	if err != nil {
@@ -123,8 +120,8 @@ func seedDB() {
 
 func saveResource(r Resource) error {
 	query := `
-	INSERT INTO resources (title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`
+	INSERT INTO resources (title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`
 
 	_, err := db.Exec(query,
 		r.Title,
@@ -135,12 +132,13 @@ func saveResource(r Resource) error {
 		r.UploadedBy,
 		r.UploadedAt,
 		r.FileName,
+		r.UserID,
 	)
 	return err
 }
 
 func getResources(search, university, category, sort string) ([]Resource, error) {
-	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes FROM resources"
+	query := "SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id FROM resources"
 
 	var args []interface{}
 	var conditions []string
@@ -168,13 +166,13 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 	case "popular":
 		query += " ORDER BY downloads DESC"
 	case "upvotes":
-	query += " ORDER BY upvotes DESC"
+		query += " ORDER BY upvotes DESC"
 	case "oldest":
 		query += " ORDER BY id ASC"
 	default:
 		query += " ORDER BY id DESC"
 	}
-	
+
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
@@ -196,6 +194,7 @@ func getResources(search, university, category, sort string) ([]Resource, error)
 			&r.FileName,
 			&r.Downloads,
 			&r.Upvotes,
+			&r.UserID,
 		)
 		if err != nil {
 			return nil, err
@@ -260,14 +259,190 @@ func upvoteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
+func editHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
+	idStr := strings.TrimPrefix(r.URL.Path, "/edit/")
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
 		http.NotFound(w, r)
 		return
 	}
 
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if resource.UserID != currentUser.ID {
+		http.Error(w, "You can only edit your own resources.", http.StatusForbidden)
+		return
+	}
+
+	if r.Method == "GET" {
+		data := newPageData(r, "Edit Resource - ElimuLocal")
+		data.Resource = resource
+		data.Universities = getUniversities()
+		renderTemplate(w, "edit.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		title := strings.TrimSpace(r.FormValue("title"))
+		course := strings.TrimSpace(r.FormValue("course"))
+		university := strings.TrimSpace(r.FormValue("university"))
+		category := r.FormValue("category")
+		description := strings.TrimSpace(r.FormValue("description"))
+
+		if title == "" || course == "" || university == "" {
+			data := newPageData(r, "Edit Resource - ElimuLocal")
+			data.Message = "Please fill in all required fields."
+			data.Resource = resource
+			data.Universities = getUniversities()
+			renderTemplate(w, "edit.html", data)
+			return
+		}
+
+		fileName := resource.FileName
+
+		r.ParseMultipartForm(500 << 20)
+		file, header, err := r.FormFile("file")
+		if err == nil {
+			defer file.Close()
+			ext := strings.ToLower(filepath.Ext(header.Filename))
+			if ext == ".pdf" || ext == ".mp4" || ext == ".mkv" {
+				newFileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
+				newFilePath := filepath.Join("uploads", newFileName)
+				dst, err := os.Create(newFilePath)
+				if err == nil {
+					defer dst.Close()
+					io.Copy(dst, file)
+					if fileName != "" {
+						deleteFile(resource.FileName)
+					}
+					fileName = newFileName
+				}
+			}
+		}
+
+		_, err = db.Exec(
+			"UPDATE resources SET title=?, course=?, university=?, category=?, description=?, file_name=? WHERE id=? AND user_id=?",
+			title, course, university, category, description, fileName, id, currentUser.ID,
+		)
+		if err != nil {
+			data := newPageData(r, "Edit Resource - ElimuLocal")
+			data.Message = "Could not save changes. Please try again."
+			data.Resource = resource
+			data.Universities = getUniversities()
+			renderTemplate(w, "edit.html", data)
+			return
+		}
+
+		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
+		return
+	}
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/delete/")
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	if resource.UserID != currentUser.ID {
+		http.Error(w, "You can only delete your own resources.", http.StatusForbidden)
+		return
+	}
+
+	if resource.FileName != "" {
+		deleteFile(resource.FileName)
+	}
+
+	db.Exec("DELETE FROM resources WHERE id = ? AND user_id = ?", id, currentUser.ID)
+
+	http.Redirect(w, r, "/?deleted=1", http.StatusSeeOther)
+}
+
+func getResourceByID(id int) (Resource, error) {
+	var r Resource
+	err := db.QueryRow(
+		"SELECT id, title, course, university, category, description, uploaded_by, uploaded_at, file_name, downloads, upvotes, user_id FROM resources WHERE id = ?",
+		id,
+	).Scan(
+		&r.ID,
+		&r.Title,
+		&r.Course,
+		&r.University,
+		&r.Category,
+		&r.Description,
+		&r.UploadedBy,
+		&r.UploadedAt,
+		&r.FileName,
+		&r.Downloads,
+		&r.Upvotes,
+		&r.UserID,
+	)
+	return r, err
+}
+
+func newPageData(r *http.Request, title string) PageData {
+	currentUser, loggedIn := getSessionUser(r)
+	return PageData{
+		Title:        title,
+		Universities: getUniversities(),
+		CurrentUser:  currentUser,
+		LoggedIn:     loggedIn,
+	}
+}
+
+func renderLanding(w http.ResponseWriter, data PageData) {
+	tmpl, err := template.ParseFiles("templates/landing.html")
+	if err != nil {
+		http.Error(w, "Could not load page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.ExecuteTemplate(w, "landing", data)
+	if err != nil {
+		http.Error(w, "Could not render page: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func landingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	data := newPageData(r, "ElimuLocal — Free Study Materials for Kenyan University Students")
+	renderLanding(w, data)
+}
+
+func browseHandler(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 	university := r.URL.Query().Get("university")
 	category := r.URL.Query().Get("category")
@@ -278,30 +453,39 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not load resources: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	message := ""
 	if r.URL.Query().Get("success") == "1" {
-    message = "✅ Resource uploaded successfully! Students can now find and download it."
+		message = "✅ Resource uploaded successfully!"
+	}
+	if r.URL.Query().Get("deleted") == "1" {
+		message = "🗑️ Resource deleted successfully."
+	}
+	if r.URL.Query().Get("success") == "registered" {
+		message = "🎉 Welcome to ElimuLocal! You are now registered and logged in."
 	}
 
-	data := PageData{
-		Title:        "ElimuLocal - Browse Study Materials",
-		Resources:    resources,
-		Universities: getUniversities(),
-		Search:       search,
-		University:   university,
-		Category:     category,
-		Sort:         sort,
-		Message:      message,
-	}
+	data := newPageData(r, "Browse Resources - ElimuLocal")
+	data.Resources = resources
+	data.Universities = getUniversities()
+	data.Search = search
+	data.University = university
+	data.Category = category
+	data.Sort = sort
+	data.Message = message
 
 	renderTemplate(w, "home.html", data)
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+
 	if r.Method == "GET" {
 		data := PageData{
 			Title:        "Share a Resource - ElimuLocal",
 			Universities: getUniversities(),
+			CurrentUser:  currentUser,
+			LoggedIn:     loggedIn,
 		}
 		renderTemplate(w, "upload.html", data)
 		return
@@ -324,17 +508,22 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Please fill in all required fields.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
 		}
 
-		err := r.ParseMultipartForm(10 << 20)
+		// allow larger uploads for video files (up to 500MB)
+		err := r.ParseMultipartForm(500 << 20)
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
-				Message:      "File too large. Maximum size is 10MB.",
+				Message:      "File too large. Maximum size is 500MB.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -344,8 +533,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Please select a PDF file to upload.",
+				Message:      "Please select a file to upload.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -353,37 +544,35 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		ext := strings.ToLower(filepath.Ext(header.Filename))
-		if ext != ".pdf" {
+		if ext != ".pdf" && ext != ".mp4" && ext != ".mkv" && ext != ".webm" {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Only PDF files are allowed.",
+				Message:      "Only PDF and video files (MP4, MKV, WEBM) are allowed.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
 		}
 
 		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-		filePath := filepath.Join("uploads", fileName)
 
-		dst, err := os.Create(filePath)
+		err = uploadFile(fileName, file, "application/octet-stream")
 		if err != nil {
-			data := PageData{
-				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Could not save file. Please try again.",
-				Universities: getUniversities(),
-			}
+			data := newPageData(r, "Share a Resource - ElimuLocal")
+			data.Message = "Could not save file. Please try again."
+			data.Universities = getUniversities()
 			renderTemplate(w, "upload.html", data)
 			return
 		}
-		defer dst.Close()
-
-		_, err = io.Copy(dst, file)
 		if err != nil {
 			data := PageData{
 				Title:        "Share a Resource - ElimuLocal",
 				Message:      "Could not save file. Please try again.",
 				Universities: getUniversities(),
+				CurrentUser:  currentUser,
+				LoggedIn:     loggedIn,
 			}
 			renderTemplate(w, "upload.html", data)
 			return
@@ -398,6 +587,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			UploadedBy:  uploader,
 			UploadedAt:  time.Now().Format("2006-01-02"),
 			FileName:    fileName,
+			UserID:      currentUser.ID,
 		}
 
 		err = saveResource(newResource)
@@ -411,7 +601,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
+		http.Redirect(w, r, "/browse?success=1", http.StatusSeeOther)
 		return
 	}
 }
@@ -428,7 +618,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow(
 		"SELECT file_name, title FROM resources WHERE id = ?", idStr,
 	).Scan(&fileName, &title)
-
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -439,8 +628,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := filepath.Join("uploads", fileName)
-
 	var id int
 	fmt.Sscan(idStr, &id)
 	incrementDownloads(id)
@@ -448,7 +635,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename="+title+".pdf")
 	w.Header().Set("Content-Type", "application/pdf")
 
-	http.ServeFile(w, r, filePath)
+	err = serveFile(fileName, w)
+	if err != nil {
+		http.Error(w, "Could not retrieve file", http.StatusInternalServerError)
+		return
+	}
 }
 
 func renderTemplate(w http.ResponseWriter, page string, data PageData) {
@@ -463,20 +654,127 @@ func renderTemplate(w http.ResponseWriter, page string, data PageData) {
 	}
 }
 
+func previewHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/preview/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var id int
+	fmt.Sscan(idStr, &id)
+	if id == 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	resource, err := getResourceByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if resource.FileName == "" {
+		http.Error(w, "No file available for this resource yet.", http.StatusNotFound)
+		return
+	}
+	ext := strings.ToLower(filepath.Ext(resource.FileName))
+	isVideo := ext == ".mp4" || ext == ".mkv" || ext == ".webm"
+
+	mimeType := "application/pdf"
+	if ext == ".mp4" {
+		mimeType = "video/mp4"
+	} else if ext == ".mkv" {
+		mimeType = "video/x-matroska"
+	} else if ext == ".webm" {
+		mimeType = "video/webm"
+	}
+
+	data := newPageData(r, resource.Title+" - ElimuLocal")
+	data.Resource = resource
+	data.IsVideo = isVideo
+	data.MimeType = mimeType
+
+	renderTemplate(w, "preview.html", data)
+}
+
+func streamHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/stream/")
+	if idStr == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var fileName string
+	var title string
+	err := db.QueryRow(
+		"SELECT file_name, title FROM resources WHERE id = ?", idStr,
+	).Scan(&fileName, &title)
+
+	if err != nil || fileName == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fileName))
+
+	switch ext {
+	case ".pdf":
+		w.Header().Set("Content-Type", "application/pdf")
+	case ".mp4":
+		w.Header().Set("Content-Type", "video/mp4")
+	case ".mkv":
+		w.Header().Set("Content-Type", "video/x-matroska")
+	case ".webm":
+		w.Header().Set("Content-Type", "video/webm")
+	default:
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+
+	w.Header().Set("Content-Disposition", "inline; filename=\""+title+"\"")
+	err = serveFile(fileName, w)
+	if err != nil {
+		http.Error(w, "Could not retrieve file", http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
+	// Load .env file (silently ignored if not present)
+	_ = godotenv.Load()
+
 	initDB()
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/", landingHandler)
+	http.HandleFunc("/browse", browseHandler)
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download/", downloadHandler)
+	http.HandleFunc("/preview/", previewHandler)
+	http.HandleFunc("/stream/", streamHandler)
 	http.HandleFunc("/upvote/", upvoteHandler)
+	http.HandleFunc("/edit/", editHandler)
+	http.HandleFunc("/delete/", deleteHandler)
+	http.HandleFunc("/register", registerHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
 	fmt.Println("ElimuLocal is running!")
-	fmt.Println("Open your browser and go to: http://localhost:8080")
+	fmt.Printf("Open your browser and go to: http://localhost:%s\n", port)
 	fmt.Println("Press Ctrl+C to stop the server.")
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	server := &http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  300 * time.Second,
+		WriteTimeout: 300 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	log.Fatal(server.ListenAndServe())
 }

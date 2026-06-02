@@ -1,0 +1,23 @@
+#Git history - not needed in the container
+.git
+.gitignore
+.gitattributes
+
+#Database - lives outside the container via a volume
+elimulocal.db
+
+#Uploaded files - live outside the container via a volume
+uploads/*
+!uploads/.gitkeep
+
+#PDF.js - large library, copied seperately
+static/pdf.js/
+
+#Development files
+*.md
+DEVLOG.md
+README.md
+
+#Go build cache
+*.exe
+*.test

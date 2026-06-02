@@ -1,7 +1,7 @@
 {{define "content"}}
 
 <section class="upload-section">
-    <a href="/" class="back-link">← Back to Browse</a>
+    <a href="/browse" class="back-link">← Back to Browse</a>
     <h1>Share a Resource</h1>
     <p>Help a fellow student by sharing your notes or past papers.</p>
 
@@ -40,6 +40,7 @@
                 <option value="Past Paper">Past Paper</option>
                 <option value="Textbook">Textbook</option>
                 <option value="Summary">Summary Sheet</option>
+                <option value="Video">Video</option>
                 <option value="Other">Other</option>
             </select>
         </label>
@@ -52,8 +53,9 @@
             <input type="text" name="uploader" placeholder="e.g. Brian K.">
         </label>
 
-        <label>Upload File (PDF) *
-            <input type="file" name="file" accept=".pdf" required>
+        <label>Upload File *
+            <input type="file" name="file" accept=".pdf,.mp4,.mkv,.webm" required>
+            <small class="field-hint">Accepted formats: PDF, MP4, MKV, WEBM. Max size: 500MB.</small>
         </label>
 
         <button type="submit">📤 Share Resource</button>

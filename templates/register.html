@@ -1,0 +1,58 @@
+{{define "content"}}
+<section class="upload-section">
+    <a href="/browse" class="back-link">← Back to Browse</a>
+    <h1>Create an Account</h1>
+    <p>Join ElimuLocal to upload and manage your resources.</p>
+
+    {{if .Message}}
+    <div class="alert">{{.Message}}</div>
+    {{end}}
+
+    <form action="/register" method="POST">
+        <label>Username *
+            <input
+                type="text"
+                name="username"
+                placeholder="e.g. brian_k"
+                minlength="3"
+                required
+            >
+        </label>
+
+        <label>Email *
+            <input
+                type="email"
+                name="email"
+                placeholder="e.g. brian@university.ac.ke"
+                required
+            >
+        </label>
+
+        <label>Password *
+            <input
+                type="password"
+                name="password"
+                placeholder="At least 8 characters"
+                minlength="8"
+                required
+            >
+        </label>
+
+        <label>Confirm Password *
+            <input
+                type="password"
+                name="confirm"
+                placeholder="Type your password again"
+                required
+            >
+        </label>
+
+        <button type="submit">Create Account</button>
+
+        <p style="text-align:center; margin-top: 8px; font-size: 0.9rem;">
+            Already have an account?
+            <a href="/login" style="color: var(--green);">Log in here</a>
+        </p>
+    </form>
+</section>
+{{end}}
