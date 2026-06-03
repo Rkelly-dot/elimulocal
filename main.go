@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -318,11 +317,9 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			ext := strings.ToLower(filepath.Ext(header.Filename))
 			if ext == ".pdf" || ext == ".mp4" || ext == ".mkv" {
 				newFileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-				newFilePath := filepath.Join("uploads", newFileName)
-				dst, err := os.Create(newFilePath)
+				contentType := "application/octet-stream"
+				err := uploadFile(newFileName, file, contentType)
 				if err == nil {
-					defer dst.Close()
-					io.Copy(dst, file)
 					if fileName != "" {
 						deleteFile(resource.FileName)
 					}
@@ -743,6 +740,7 @@ func main() {
 	_ = godotenv.Load()
 
 	initDB()
+	mustInitStorage()
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
