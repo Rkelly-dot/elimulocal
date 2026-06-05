@@ -1,17 +1,17 @@
-# 📚 ElimuLocal
+#  ElimuLocal
 
 > Free study materials for every Kenyan university student.
 
 ElimuLocal is a platform where university students share and access notes,
 past papers, textbooks and lecture videos — for free. It works on campus
 WiFi with no internet required, and is available from anywhere via the
-cloud at [elimulocal.co.ke](https://elimulocal.co.ke).
+cloud at [elimulocal.onrender.com](https://elimulocal.onrender.com).
 
 Built entirely in Go by Ryan Kelly — Zone01 Kisumu, Kenya.
 
 ---
 
-## 🗺️ What this project is
+##  What this project is
 
 ElimuLocal solves three problems that every Kenyan university student faces:
 
@@ -27,7 +27,7 @@ students share knowledge with each other openly and without barriers.
 
 ---
 
-## ✨ Features
+##  Features
 
 - Browse and search resources by keyword, university and category
 - Upload PDF notes, past papers, textbooks, summaries and video lectures
@@ -44,7 +44,7 @@ students share knowledge with each other openly and without barriers.
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 Students on campus WiFi          Students off campus
@@ -65,7 +65,7 @@ immediately available to students off campus and vice versa.
 
 ---
 
-## 🚀 How to run it
+##  How to run it
 
 ### Requirements
 
@@ -127,7 +127,7 @@ go run .
 
 ---
 
-## ⚙️ Environment variables
+##  Environment variables
 
 Copy `.env.example` to `.env` and fill in your values.
 
@@ -145,7 +145,7 @@ Copy `.env.example` to `.env` and fill in your values.
 
 ---
 
-## 📁 Project structure
+##  Project structure
 
 ```
 elimulocal/
@@ -188,7 +188,7 @@ elimulocal/
 
 ---
 
-## 👥 Who does what
+##  Who does what
 
 ### Administrator (person running the server)
 
@@ -210,13 +210,13 @@ No installation needed. Just a browser.
 
 1. Connect to campus WiFi (or use elimulocal.co.ke from anywhere)
 2. Open any browser — Chrome, Firefox, Safari, anything
-3. Go to `http://YOUR-CAMPUS-IP:8080` or `https://elimulocal.co.ke`
+3. Go to `http://YOUR-CAMPUS-IP:8080` or `https://elimulocal.onrender.com`
 4. Register for a free account
 5. Browse, upload, download and upvote resources
 
 ---
 
-## 🗓️ Roadmap
+##  Roadmap
 
 ### Month 1 — Core product ✓
 - [x] Project setup and folder structure
@@ -254,7 +254,7 @@ No installation needed. Just a browser.
 
 ---
 
-## 🌍 Design decisions
+##  Design decisions
 
 **Why Go?**
 Go compiles to a single binary with no runtime dependencies. A campus can
@@ -283,7 +283,7 @@ The cloud deployment is additive — it does not break the offline use case.
 
 ---
 
-## 🧠 Tech stack
+##  Tech stack
 
 | Layer | Technology |
 |---|---|
@@ -301,7 +301,7 @@ The cloud deployment is additive — it does not break the offline use case.
 
 ---
 
-## 📖 Learning resources
+## Learning resources
 
 This project was built while learning Go. If you are doing the same:
 
@@ -311,13 +311,13 @@ This project was built while learning Go. If you are doing the same:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 If you are a student at a Kenyan university and want to help test ElimuLocal
 or contribute resources for your campus, reach out via GitHub.
 
 ---
 
-*Built for Kenyan university students. Share knowledge, uplift each other. 🇰🇪*
+*Built for Kenyan university students. Share knowledge, uplift each other. *
 
 *Ryan Kelly — Zone01 Kisumu — 2025*
