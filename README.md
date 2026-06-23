@@ -208,7 +208,7 @@ elimulocal/
 
 No installation needed. Just a browser.
 
-1. Connect to campus WiFi (or use elimulocal.co.ke from anywhere)
+1. Connect to campus WiFi (or use elimulocal.onrender.com from anywhere)
 2. Open any browser — Chrome, Firefox, Safari, anything
 3. Go to `http://YOUR-CAMPUS-IP:8080` or `https://elimulocal.onrender.com`
 4. Register for a free account
@@ -243,7 +243,7 @@ No installation needed. Just a browser.
 - [x] Docker and docker-compose
 - [x] Turso cloud database
 - [x] Backblaze B2 file storage
-- [x] Cloud deployment on Koyeb
+- [x] Cloud deployment on Render
 
 ### Month 4 — Hybrid architecture (planned)
 - [ ] Campus sync service — resources shared between campus and cloud
@@ -271,7 +271,7 @@ R2 requires a credit card even for the free tier. B2 does not. Both are
 S3-compatible so switching later requires changing only environment variables,
 not code.
 
-**Why Koyeb and not AWS or DigitalOcean?**
+**Why Render and not AWS or DigitalOcean?**
 Koyeb's free tier requires no credit card. For a project in early growth
 stage, zero infrastructure cost matters. The app can migrate to any Docker-
 compatible host later with no code changes.
@@ -320,4 +320,4 @@ or contribute resources for your campus, reach out via GitHub.
 
 *Built for Kenyan university students. Share knowledge, uplift each other. *
 
-*Ryan Kelly — Zone01 Kisumu — 2025*
+*Ryan Kelly — Zone01 Kisumu — 2026*
