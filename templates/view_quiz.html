@@ -1,0 +1,78 @@
+{{define "content"}}
+
+<section class="quiz-section">
+
+    <a href="/quizzes" class="back-link">← Back to Quizzes</a>
+
+    <div class="quiz-header">
+        <span class="tag">{{.Quiz.Course}}</span>
+        <h1 class="quiz-title">{{.Quiz.Title}}</h1>
+        <p class="quiz-meta">
+            🎓 {{.Quiz.University}} &nbsp;·&nbsp; 📖 {{.Quiz.Course}}
+        </p>
+        {{if .Quiz.Description}}
+        <p class="quiz-description">{{.Quiz.Description}}</p>
+        {{end}}
+    </div>
+
+    {{if .Message}}
+    <div class="alert">{{.Message}}</div>
+    {{end}}
+
+    <!--
+        IMPORTANT: notice this form never prints {{.CorrectAnswer}}
+        anywhere. Each question only shows the question text and
+        the options the student can pick from. The correct answer
+        stays server-side and is only checked after submission —
+        in submitQuizHandler, which we build next.
+    -->
+    <form action="/quiz/{{.Quiz.ID}}/submit" method="POST" class="quiz-form">
+
+        {{range $index, $q := .Questions}}
+        <div class="question-card">
+            <p class="question-number">Question {{$q.QuestionOrder | inc}}</p>
+            <p class="question-text">{{$q.QuestionText}}</p>
+
+            <!--
+                question_id[] tells the server which question this
+                answer belongs to, since the form submits all
+                answers at once in parallel arrays — same pattern
+                we used for creating questions.
+            -->
+            <input type="hidden" name="question_id[]" value="{{$q.ID}}">
+
+            {{if eq $q.QuestionType "mcq"}}
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="a" required> {{$q.OptionA}}
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="b"> {{$q.OptionB}}
+                </label>
+                {{if $q.OptionC}}
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="c"> {{$q.OptionC}}
+                </label>
+                {{end}}
+                {{if $q.OptionD}}
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="d"> {{$q.OptionD}}
+                </label>
+                {{end}}
+            {{else}}
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="true" required> True
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="answer_{{$q.ID}}" value="false"> False
+                </label>
+            {{end}}
+        </div>
+        {{end}}
+
+        <button type="submit" class="submit-btn">✅ Submit Quiz</button>
+
+    </form>
+
+</section>
+
+{{end}}
