@@ -1,0 +1,25 @@
+{{define "content"}}
+
+<section class="quiz-section">
+
+    <a href="/quizzes" class="back-link">← Back to Quizzes</a>
+
+    <div class="quiz-header">
+        <h1 class="quiz-title">{{.Quiz.Title}} — Results</h1>
+        <p class="score-display">
+            You scored {{.Attempt.Score}} out of {{.Attempt.TotalQuestions}}
+        </p>
+    </div>
+
+    {{range .Results}}
+    <div class="question-card {{if .IsCorrect}}correct{{else}}incorrect{{end}}">
+        <p class="question-text">{{.Question.QuestionText}}</p>
+        <p>Your answer: <strong>{{.StudentAnswer}}</strong></p>
+        <p>Correct answer: <strong>{{.Question.CorrectAnswer}}</strong></p>
+        <p>{{if .IsCorrect}}✅ Correct{{else}}❌ Incorrect{{end}}</p>
+    </div>
+    {{end}}
+
+</section>
+
+{{end}}

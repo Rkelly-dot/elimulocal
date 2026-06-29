@@ -757,6 +757,9 @@ func main() {
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/quiz/create", createQuizHandler)
+	http.HandleFunc("/quiz/", viewQuizHandler)
+	http.HandleFunc("/quizzes", listQuizzesHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

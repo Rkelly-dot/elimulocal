@@ -1,0 +1,44 @@
+{{define "content"}}
+
+<section class="quiz-section">
+
+    <div class="results-header">
+         <a href="/browse" class="back-link">← Back to Browse</a>
+        <h2>Available Quizzes <span class="count-badge">{{len .Quizzes}} found</span></h2>
+        {{if .LoggedIn}}
+        <a href="/quiz/create" class="upload-link">+ Create a Quiz</a>
+        {{end}}
+    </div>
+
+    {{if .Message}}
+    <div class="alert" style="background:#d1fae5; color:#065f46; border-color:#6ee7b7;">{{.Message}}</div>
+    {{end}}
+
+    {{if .Quizzes}}
+    <div class="resource-grid">
+        {{range .Quizzes}}
+        <div class="card">
+            <span class="tag">{{.Course}}</span>
+            <h3>{{.Title}}</h3>
+            {{if .Description}}<p>{{.Description}}</p>{{end}}
+            <div class="card-meta">
+                <span>🎓 {{.University}}</span>
+                <span>📖 {{.Course}}</span>
+            </div>
+            <div class="card-footer">
+                <span>📅 {{.CreatedAt}}</span>
+                <a href="/quiz/{{.ID}}" class="download-btn">Take Quiz</a>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="empty">
+        <p>No quizzes available yet. Be the first to create one!</p>
+        <a href="/quiz/create">+ Create a Quiz</a>
+    </div>
+    {{end}}
+
+</section>
+
+{{end}}

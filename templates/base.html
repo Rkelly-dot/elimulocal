@@ -17,9 +17,12 @@
             <div class="nav-links">
                 {{if .LoggedIn}}
                     <span class="nav-user">👤 {{.CurrentUser.Username}}</span>
+                    <a href="/quizzes" class="nav-link">Quizzes</a>
+                    <a href="/quiz/create" class="nav-btn">Create Quiz</a>
                     <a href="/upload" class="nav-btn">+ Share resources</a>
                     <a href="/logout" class="nav-logout">Log out</a>
                 {{else}}
+                    <a href="/quizzes" class="nav-link">Quizzes</a>
                     <a href="/login" class="nav-link">Log in</a>
                     <a href="/register" class="nav-btn">Register</a>
                 {{end}}
