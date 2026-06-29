@@ -758,14 +758,8 @@ func main() {
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/quiz/create", createQuizHandler)
+	http.HandleFunc("/quiz/", viewQuizHandler)
 	http.HandleFunc("/quizzes", listQuizzesHandler)
-	http.HandleFunc("/quiz/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/submit") {
-			submitQuizHandler(w, r)
-			return
-		}
-		viewQuizHandler(w, r)
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
