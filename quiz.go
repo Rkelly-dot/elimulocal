@@ -1,11 +1,11 @@
 package main
 
 import (
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-	"html/template"
 )
 
 // -------------------------------------------------------
@@ -79,6 +79,29 @@ func newQuizPageData(r *http.Request, title string) QuizPageData {
 		CurrentUser: currentUser,
 		LoggedIn:    loggedIn,
 	}
+}
+
+func parseQuizPath(path string) (int, string, bool) {
+	trimmed := strings.Trim(path, "/")
+	parts := strings.Split(trimmed, "/")
+	if len(parts) < 2 || parts[0] != "quiz" {
+		return 0, "", false
+	}
+
+	id, err := strconv.Atoi(parts[1])
+	if err != nil || id == 0 {
+		return 0, "", false
+	}
+
+	if len(parts) == 2 {
+		return id, "view", true
+	}
+
+	if len(parts) == 3 && parts[2] == "submit" {
+		return id, "submit", true
+	}
+
+	return 0, "", false
 }
 
 // -------------------------------------------------------
@@ -240,15 +263,19 @@ func viewQuizHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idStr := strings.TrimPrefix(r.URL.Path, "/quiz/")
-	id, err := strconv.Atoi(idStr)
-	if err != nil || id == 0 {
+	id, action, ok := parseQuizPath(r.URL.Path)
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 
+	if action == "submit" {
+		submitQuizHandler(w, r)
+		return
+	}
+
 	var quiz Quiz
-	err = db.QueryRow(
+	err := db.QueryRow(
 		"SELECT id, title, course, university, description, created_by, created_at FROM quizzes WHERE id = ?",
 		id,
 	).Scan(&quiz.ID, &quiz.Title, &quiz.Course, &quiz.University, &quiz.Description, &quiz.CreatedBy, &quiz.CreatedAt)
@@ -287,6 +314,7 @@ func viewQuizHandler(w http.ResponseWriter, r *http.Request) {
 	data.Questions = questions
 	renderQuizTemplate(w, "view_quiz.html", data)
 }
+
 // -------------------------------------------------------
 // HANDLER — listQuizzesHandler
 // Shows every quiz available, similar to browseHandler
@@ -322,4 +350,116 @@ func listQuizzesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderQuizTemplate(w, "list_quizzes.html", data)
+}
+
+// -------------------------------------------------------
+// HANDLER — submitQuizHandler
+// Receives the student's answers, grades them against
+// correct_answer in the database, saves the attempt and
+// each answer, then shows the results page.
+// URL pattern: /quiz/{id}/submit
+// -------------------------------------------------------
+
+func submitQuizHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	quizID, _, ok := parseQuizPath(r.URL.Path)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	r.ParseForm()
+	questionIDs := r.Form["question_id[]"]
+
+	var results []QuestionResult
+	score := 0
+
+	for _, qidStr := range questionIDs {
+		qid, err := strconv.Atoi(qidStr)
+		if err != nil {
+			continue
+		}
+
+		// Fetch the full question — we need question_text, options
+		// AND correct_answer, since grading happens here on the
+		// server, never in the browser.
+		var q QuizQuestion
+		err = db.QueryRow(
+			`SELECT id, quiz_id, question_text, question_type, option_a, option_b, option_c, option_d, correct_answer, question_order
+			 FROM quiz_questions WHERE id = ?`,
+			qid,
+		).Scan(&q.ID, &q.QuizID, &q.QuestionText, &q.QuestionType, &q.OptionA, &q.OptionB, &q.OptionC, &q.OptionD, &q.CorrectAnswer, &q.QuestionOrder)
+		if err != nil {
+			continue
+		}
+
+		// The radio button group for this question was named
+		// answer_{questionID} in view_quiz.html — read it back
+		// the same way.
+		studentAnswer := strings.ToLower(strings.TrimSpace(r.FormValue("answer_" + qidStr)))
+		isCorrect := studentAnswer == q.CorrectAnswer
+
+		if isCorrect {
+			score++
+		}
+
+		results = append(results, QuestionResult{
+			Question:      q,
+			StudentAnswer: studentAnswer,
+			IsCorrect:     isCorrect,
+		})
+	}
+
+	totalQuestions := len(results)
+
+	// Save the attempt
+	result, err := db.Exec(
+		`INSERT INTO quiz_attempts (quiz_id, user_id, score, total_questions, submitted_at)
+		 VALUES (?, ?, ?, ?, ?)`,
+		quizID, currentUser.ID, score, totalQuestions, time.Now().Format("2006-01-02 15:04:05"),
+	)
+	if err != nil {
+		http.Error(w, "Could not save your attempt. Please try again.", http.StatusInternalServerError)
+		return
+	}
+	attemptID, _ := result.LastInsertId()
+
+	// Save each individual answer, linked to the attempt
+	for _, res := range results {
+		db.Exec(
+			`INSERT INTO attempt_answers (attempt_id, question_id, student_answer, is_correct)
+			 VALUES (?, ?, ?, ?)`,
+			attemptID, res.Question.ID, res.StudentAnswer, res.IsCorrect,
+		)
+	}
+
+	// Fetch the quiz itself for the results page header
+	var quiz Quiz
+	db.QueryRow(
+		"SELECT id, title, course, university, description, created_by, created_at FROM quizzes WHERE id = ?",
+		quizID,
+	).Scan(&quiz.ID, &quiz.Title, &quiz.Course, &quiz.University, &quiz.Description, &quiz.CreatedBy, &quiz.CreatedAt)
+
+	data := newQuizPageData(r, "Results - "+quiz.Title)
+	data.Quiz = quiz
+	data.Results = results
+	data.Attempt = QuizAttempt{
+		ID:             int(attemptID),
+		QuizID:         quizID,
+		UserID:         currentUser.ID,
+		Score:          score,
+		TotalQuestions: totalQuestions,
+	}
+
+	renderQuizTemplate(w, "quiz_results.html", data)
 }
