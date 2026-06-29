@@ -1,52 +1,67 @@
 {{define "content"}}
 
 <section class="quiz-section">
+    <div class="quiz-shell">
+        <a href="/quizzes" class="back-link">← Back to Quizzes</a>
 
-    <a href="/quizzes" class="back-link">← Back to Quizzes</a>
-    <h1 class="quiz-title">Create a Quiz</h1>
-    <p class="quiz-meta">Add multiple choice or true/false questions for your students.</p>
-
-    {{if .Message}}
-    <div class="alert">{{.Message}}</div>
-    {{end}}
-
-    <form action="/quiz/create" method="POST" id="quiz-form">
-
-        <label>Quiz Title *
-            <input type="text" name="title" placeholder="e.g. Data Structures Basics" required>
-        </label>
-
-        <label>Course / Subject *
-            <input type="text" name="course" placeholder="e.g. Computer Science" required>
-        </label>
-
-        <label>University *
-            <input type="text" name="university" list="uni-suggestions" placeholder="Type your university name..." required>
-            <datalist id="uni-suggestions">
-                {{range .Universities}}
-                <option value="{{.}}">
-                {{end}}
-            </datalist>
-        </label>
-
-        <label>Description
-            <textarea name="description" rows="2" placeholder="Briefly describe what this quiz covers..."></textarea>
-        </label>
-
-        <hr style="margin: 24px 0; border-color: var(--border);">
-
-        <h3>Questions</h3>
-        <div id="questions-container">
-            <!-- Question blocks get added here by JavaScript -->
+        <div class="quiz-intro-card">
+            <span class="tag">Quiz builder</span>
+            <h1 class="quiz-title">Create a Quiz</h1>
+            <p class="quiz-meta">Add multiple choice or true/false questions for your students.</p>
         </div>
 
-        <button type="button" id="add-question-btn" class="back-link" style="border:1.5px dashed var(--border); padding:10px 16px; border-radius:8px; cursor:pointer; background:none;">
-            + Add Question
-        </button>
+        {{if .Message}}
+        <div class="alert">{{.Message}}</div>
+        {{end}}
 
-        <button type="submit" class="submit-btn" style="margin-top:24px;">📤 Create Quiz</button>
+        <form action="/quiz/create" method="POST" id="quiz-form" class="quiz-create-form">
+            <div class="form-grid">
+                <label class="field-group">
+                    <span>Quiz title *</span>
+                    <input type="text" name="title" placeholder="e.g. Data Structures Basics" required>
+                </label>
 
-    </form>
+                <label class="field-group">
+                    <span>Course / Subject *</span>
+                    <input type="text" name="course" placeholder="e.g. Computer Science" required>
+                </label>
+
+                <label class="field-group">
+                    <span>University *</span>
+                    <input type="text" name="university" list="uni-suggestions" placeholder="Type your university name..." required>
+                    <datalist id="uni-suggestions">
+                        {{range .Universities}}
+                        <option value="{{.}}">
+                        {{end}}
+                    </datalist>
+                </label>
+
+                <label class="field-group full-width">
+                    <span>Description</span>
+                    <textarea name="description" rows="3" placeholder="Briefly describe what this quiz covers..."></textarea>
+                </label>
+            </div>
+
+            <div class="section-card">
+                <div class="section-toolbar">
+                    <div>
+                        <h2 class="section-title">Questions</h2>
+                        <p class="section-copy">Add one or more questions, then choose the correct answer for each.</p>
+                    </div>
+                </div>
+
+                <div id="questions-container" class="questions-stack">
+                    <!-- Question blocks get added here by JavaScript -->
+                </div>
+
+                <button type="button" id="add-question-btn" class="secondary-btn">+ Add Question</button>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">📤 Create Quiz</button>
+            </div>
+        </form>
+    </div>
 </section>
 
 <!--
@@ -55,43 +70,53 @@
     markup is parsed by the browser but never rendered on its own.
 -->
 <template id="question-template">
-    <div class="question-card question-block">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="question-builder question-block">
+        <div class="question-builder-header">
             <p class="question-number">Question</p>
-            <button type="button" class="remove-question-btn" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">✕ Remove</button>
+            <button type="button" class="remove-question-btn">✕ Remove</button>
         </div>
 
-        <label>Question text *
+        <label class="field-group">
+            <span>Question text *</span>
             <input type="text" name="question_text[]" placeholder="e.g. What is the time complexity of binary search?" required>
         </label>
 
-        <label>Question type *
-            <select name="question_type[]" class="question-type-select" required>
-                <option value="mcq">Multiple Choice</option>
-                <option value="true_false">True / False</option>
-            </select>
-        </label>
+        <div class="question-grid">
+            <label class="field-group">
+                <span>Question type *</span>
+                <select name="question_type[]" class="question-type-select" required>
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="true_false">True / False</option>
+                </select>
+            </label>
 
-        <div class="mcq-options">
-            <label>Option A
-                <input type="text" name="option_a[]" placeholder="Option A">
-            </label>
-            <label>Option B
-                <input type="text" name="option_b[]" placeholder="Option B">
-            </label>
-            <label>Option C (optional)
-                <input type="text" name="option_c[]" placeholder="Option C">
-            </label>
-            <label>Option D (optional)
-                <input type="text" name="option_d[]" placeholder="Option D">
-            </label>
-            <label>Correct answer *
+            <label class="field-group">
+                <span>Correct answer *</span>
                 <select name="correct_answer[]" class="correct-answer-select" required>
                     <option value="a">A</option>
                     <option value="b">B</option>
                     <option value="c">C</option>
                     <option value="d">D</option>
                 </select>
+            </label>
+        </div>
+
+        <div class="mcq-options">
+            <label class="field-group">
+                <span>Option A</span>
+                <input type="text" name="option_a[]" placeholder="Option A">
+            </label>
+            <label class="field-group">
+                <span>Option B</span>
+                <input type="text" name="option_b[]" placeholder="Option B">
+            </label>
+            <label class="field-group">
+                <span>Option C (optional)</span>
+                <input type="text" name="option_c[]" placeholder="Option C">
+            </label>
+            <label class="field-group">
+                <span>Option D (optional)</span>
+                <input type="text" name="option_d[]" placeholder="Option D">
             </label>
         </div>
     </div>
