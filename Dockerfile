@@ -24,6 +24,8 @@ COPY --from=builder /app/templates ./templates
 
 COPY --from=builder /app/static ./static
 
+COPY --from=builder /app/migrations ./migrations
+
 RUN mkdir -p uploads
 
 EXPOSE 8080
