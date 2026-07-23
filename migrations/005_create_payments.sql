@@ -13,4 +13,4 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at            TEXT NOT NULL,
     updated_at            TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
-);OA
+);
