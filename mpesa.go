@@ -201,3 +201,72 @@ func (d *DarajaClient) initiateSTKPush(phone string, amount int, reference strin
 
 	return &stkResp, nil
 }
+func mpesaPayHandler(w http.ResponseWriter, r *http.Request) {
+	currentUser, loggedIn := getSessionUser(r)
+	if !loggedIn {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method == "GET" {
+		data := newPageData(r, "Subscribe - ElimuLocal")
+		renderTemplate(w, "subscribe.html", data)
+		return
+	}
+
+	if r.Method == "POST" {
+		phone := r.FormValue("phone")
+		if phone == "" {
+			data := newPageData(r, "Subscribe - ElimuLocal")
+			data.Message = "Please enter your M-Pesa phone number."
+			renderTemplate(w, "subscribe.html", data)
+			return
+		}
+
+		phone = normalisePhone(phone)
+
+		amount := 2000 
+
+		var paymentID int64
+		result, err := db.Exec(
+			`INSERT INTO payments
+			 (user_id, phone_number, amount, account_reference, status, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+			currentUser.ID, phone, amount, "ELIMULOCAL-PREMIUM",
+			time.Now().Format("2006-01-02 15:04:05"),
+			time.Now().Format("2006-01-02 15:04:05"),
+		)
+		if err != nil {
+			log.Printf("Could not save payment record: %v", err)
+		} else {
+			paymentID, _ = result.LastInsertId()
+		}
+
+		stkResp, err := daraja.initiateSTKPush(phone, amount, "ELIMULOCAL-PREMIUM")
+		if err != nil {
+			log.Printf("STK push failed: %v", err)
+			data := newPageData(r, "Subscribe - ElimuLocal")
+			data.Message = "Could not initiate M-Pesa payment. Please try again."
+			renderTemplate(w, "subscribe.html", data)
+			return
+		}
+
+		if paymentID > 0 {
+			db.Exec(
+				`UPDATE payments
+				 SET checkout_request_id=?, merchant_request_id=?, updated_at=?
+				 WHERE id=?`,
+				stkResp.CheckoutRequestID,
+				stkResp.MerchantRequestID,
+				time.Now().Format("2006-01-02 15:04:05"),
+				paymentID,
+			)
+		}
+
+		data := newPageData(r, "Payment Initiated - ElimuLocal")
+		data.Message = "✅ Check your phone! Enter your M-Pesa PIN to complete the payment. " +
+			"Reference: " + stkResp.CheckoutRequestID
+		renderTemplate(w, "subscribe.html", data)
+		return
+	}
+}
