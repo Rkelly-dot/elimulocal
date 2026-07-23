@@ -135,3 +135,69 @@ func (d *DarajaClient) getAccessToken() (string, error) {
 
 	return tokenResp.AccessToken, nil
 }
+func (d *DarajaClient) initiateSTKPush(phone string, amount int, reference string) (*STKPushResponse, error) {
+	token, err := d.getAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("could not get access token: %w", err)
+	}
+
+	timestamp := time.Now().Format("20060102150405")
+
+	rawPassword := d.ShortCode + d.Passkey + timestamp
+	password := base64.StdEncoding.EncodeToString([]byte(rawPassword))
+
+	payload := STKPushRequest{
+		BusinessShortCode: d.ShortCode,
+		Password:          password,
+		Timestamp:         timestamp,
+		TransactionType:   "CustomerPayBillOnline",
+		Amount:            amount,
+		PartyA:            phone,
+		PartyB:            d.ShortCode,
+		PhoneNumber:       phone,
+		CallBackURL:       d.CallbackURL,
+		AccountReference:  reference,
+		TransactionDesc:   "ElimuLocal Premium - " + reference,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	url := d.BaseURL + "/mpesa/stkpush/v1/processrequest"
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		url,
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("STK push request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var stkResp STKPushResponse
+	if err := json.Unmarshal(respBody, &stkResp); err != nil {
+		return nil, fmt.Errorf("could not parse STK response: %w", err)
+	}
+
+	log.Printf("STK Push initiated: CheckoutRequestID=%s ResponseCode=%s",
+		stkResp.CheckoutRequestID, stkResp.ResponseCode)
+
+	return &stkResp, nil
+}
