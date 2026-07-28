@@ -86,7 +86,7 @@ func initMpesa() {
 	fmt.Println("M-Pesa Daraja client initialised (" + env + ")")
 }
 func (d *DarajaClient) getAccessToken() (string, error) {
-	credentials := base64.stdEncoding.EncodeToString(
+	credentials := base64.StdEncoding.EncodeToString(
 		[]byte(d.ConsumerKey + ":" + d.ConsumerSecret),
 	)
 	url := d.BaseURL + "/oauth/v1/generate?grant_type=client_credentials"
@@ -100,16 +100,7 @@ func (d *DarajaClient) getAccessToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodGet,
-		url,
-		nil,
-	)
-	if err != nil {
-		return "", err
-	}
-
+	
 	req.Header.Set("Authorization", "Basic "+credentials)
 
 	client := &http.Client{Timeout: 10 * time.Second}
