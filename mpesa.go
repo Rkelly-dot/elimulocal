@@ -296,14 +296,12 @@ func mpesaCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	stk := callback.Body.STKCallback
 	resultCode := stk.ResultCode
 	checkoutRequestID := stk.CheckoutRequestID
-
-	// ResultCode 0 means success — any other code means failure
+	
 	status := "failed"
 	var receiptNumber string
 
 	if resultCode == 0 {
 		status = "completed"
-		// Extract the M-Pesa receipt number from callback metadata
 		for _, item := range stk.CallbackMetadata.Item {
 			if item.Name == "MpesaReceiptNumber" {
 				if v, ok := item.Value.(string); ok {
@@ -313,7 +311,6 @@ func mpesaCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Update the payment record matching this checkout request
 	db.Exec(
 		`UPDATE payments
 		 SET status=?, mpesa_receipt_number=?, result_code=?, result_desc=?, updated_at=?
@@ -329,14 +326,26 @@ func mpesaCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	if status == "completed" {
 		log.Printf("Payment completed: receipt=%s checkout=%s",
 			receiptNumber, checkoutRequestID)
-		// TODO Month 4: activate campus premium tier here
 	} else {
 		log.Printf("Payment failed: code=%d desc=%s checkout=%s",
 			resultCode, stk.ResultDesc, checkoutRequestID)
 	}
 
-	// Always respond 200 to Daraja — if you return any other
-	// status code, Daraja will retry the callback repeatedly
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"ResultCode":0,"ResultDesc":"Success"}`))
+}
+func normalisePhone(phone string) string {
+	result := ""
+	for _, c := range phone {
+		if c >= '0' && c <= '9' || c == '+' {
+			result += string(c)
+		}
+	}
+	if len(result) > 0 && result[0] == '+' {
+		result = result[1:]
+	}
+	if len(result) == 9 && result[0] == '0' {
+		result = "254" + result[1:]
+	}
+	return result
 }
