@@ -741,7 +741,8 @@ func main() {
 
 	initDB()
 	mustInitStorage()
-
+	initMpesa()
+	 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
@@ -760,6 +761,8 @@ func main() {
 	http.HandleFunc("/quiz/create", createQuizHandler)
 	http.HandleFunc("/quiz/", viewQuizHandler)
 	http.HandleFunc("/quizzes", listQuizzesHandler)
+	http.HandleFunc("/subscribe", mpesaPayHandler)
+	http.HandleFunc("/mpesa/callback", mpesaCallbackHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
