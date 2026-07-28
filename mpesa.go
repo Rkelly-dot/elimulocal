@@ -270,3 +270,73 @@ func mpesaPayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func mpesaCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Callback: could not read body: %v", err)
+		w.WriteHeader(http.StatusOK) // always return 200 to Daraja
+		return
+	}
+	defer r.Body.Close()
+
+	log.Printf("M-Pesa callback received: %s", string(body))
+
+	var callback STKCallback
+	if err := json.Unmarshal(body, &callback); err != nil {
+		log.Printf("Callback: could not parse body: %v", err)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	stk := callback.Body.STKCallback
+	resultCode := stk.ResultCode
+	checkoutRequestID := stk.CheckoutRequestID
+
+	// ResultCode 0 means success — any other code means failure
+	status := "failed"
+	var receiptNumber string
+
+	if resultCode == 0 {
+		status = "completed"
+		// Extract the M-Pesa receipt number from callback metadata
+		for _, item := range stk.CallbackMetadata.Item {
+			if item.Name == "MpesaReceiptNumber" {
+				if v, ok := item.Value.(string); ok {
+					receiptNumber = v
+				}
+			}
+		}
+	}
+
+	// Update the payment record matching this checkout request
+	db.Exec(
+		`UPDATE payments
+		 SET status=?, mpesa_receipt_number=?, result_code=?, result_desc=?, updated_at=?
+		 WHERE checkout_request_id=?`,
+		status,
+		receiptNumber,
+		fmt.Sprintf("%d", resultCode),
+		stk.ResultDesc,
+		time.Now().Format("2006-01-02 15:04:05"),
+		checkoutRequestID,
+	)
+
+	if status == "completed" {
+		log.Printf("Payment completed: receipt=%s checkout=%s",
+			receiptNumber, checkoutRequestID)
+		// TODO Month 4: activate campus premium tier here
+	} else {
+		log.Printf("Payment failed: code=%d desc=%s checkout=%s",
+			resultCode, stk.ResultDesc, checkoutRequestID)
+	}
+
+	// Always respond 200 to Daraja — if you return any other
+	// status code, Daraja will retry the callback repeatedly
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"ResultCode":0,"ResultDesc":"Success"}`))
+}
