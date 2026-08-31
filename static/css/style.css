@@ -45,6 +45,14 @@ body {
     color: var(--text);
     line-height: 1.6;
 }
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.meta-item svg {
+    flex-shrink: 0;
+}
 .navbar {
     background: #ffffff;
     border-bottom: 1px solid var(--border);

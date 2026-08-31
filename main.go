@@ -341,7 +341,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/?success=1", http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/preview/%d", id), http.StatusSeeOther)
 		return
 	}
 }
@@ -456,7 +456,7 @@ func browseHandler(w http.ResponseWriter, r *http.Request) {
 		message = "✅ Resource uploaded successfully!"
 	}
 	if r.URL.Query().Get("deleted") == "1" {
-		message = "🗑️ Resource deleted successfully."
+		message = "Resource deleted successfully."
 	}
 	if r.URL.Query().Get("success") == "registered" {
 		message = "🎉 Welcome to ElimuLocal! You are now registered and logged in."
@@ -560,17 +560,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			data := newPageData(r, "Share a Resource - ElimuLocal")
 			data.Message = "Could not save file. Please try again."
 			data.Universities = getUniversities()
-			renderTemplate(w, "upload.html", data)
-			return
-		}
-		if err != nil {
-			data := PageData{
-				Title:        "Share a Resource - ElimuLocal",
-				Message:      "Could not save file. Please try again.",
-				Universities: getUniversities(),
-				CurrentUser:  currentUser,
-				LoggedIn:     loggedIn,
-			}
 			renderTemplate(w, "upload.html", data)
 			return
 		}

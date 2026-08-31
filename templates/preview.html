@@ -9,14 +9,14 @@
                 <span class="tag">{{.Resource.Category}}</span>
                 <h1 class="preview-title">{{.Resource.Title}}</h1>
                 <div class="preview-meta">
-                    <span>🎓 {{.Resource.University}}</span>
-                    <span>📖 {{.Resource.Course}}</span>
-                    <span>👤 {{.Resource.UploadedBy}}</span>
-                    <span>📅 {{.Resource.UploadedAt}}</span>
+                    <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L1 6l7 4 7-4-7-4z" stroke="#6b7280" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M4 8v4c0 1.1 1.8 2 4 2s4-.9 4-2V8" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" fill="none"/><line x1="15" y1="6" x2="15" y2="10" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>{{.Resource.University}}</span>
+                    <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 13V4" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/><path d="M8 4C6 2.5 2 3 1 4v9c1-1 5-1.5 7 0" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 4c2-1.5 6-1 7 0v9c-1-1-5-1.5-7 0" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>{{.Resource.Course}}</span>
+                    <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="#6b7280" stroke-width="1.2" fill="none"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>{{.Resource.UploadedBy}}</span>
+                    <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="3" width="14" height="12" rx="2" stroke="#6b7280" stroke-width="1.2" fill="none"/><line x1="1" y1="7" x2="15" y2="7" stroke="#6b7280" stroke-width="1.2"/><line x1="5" y1="1" x2="5" y2="5" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/><line x1="11" y1="1" x2="11" y2="5" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>{{.Resource.UploadedAt}}</span>
                 </div>
             </div>
             <a href="/download/{{.Resource.ID}}" class="download-btn">
-                ⬇ Download
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="8" y1="2" x2="8" y2="11" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/><path d="M4 8l4 4 4-4" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="2" y1="14" x2="14" y2="14" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>Download
             </a>
         </div>
     </div>

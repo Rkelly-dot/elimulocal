@@ -8,7 +8,7 @@
         <span class="tag">{{.Quiz.Course}}</span>
         <h1 class="quiz-title">{{.Quiz.Title}}</h1>
         <p class="quiz-meta">
-            🎓 {{.Quiz.University}} &nbsp;·&nbsp; 📖 {{.Quiz.Course}}
+            <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L1 6l7 4 7-4-7-4z" stroke="#6b7280" stroke-width="1.2" stroke-linejoin="round" fill="none"/><path d="M4 8v4c0 1.1 1.8 2 4 2s4-.9 4-2V8" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" fill="none"/><line x1="15" y1="6" x2="15" y2="10" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>{{.Quiz.University}}</span> &nbsp;·&nbsp; <span class="meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 13V4" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/><path d="M8 4C6 2.5 2 3 1 4v9c1-1 5-1.5 7 0" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M8 4c2-1.5 6-1 7 0v9c-1-1-5-1.5-7 0" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>{{.Quiz.Course}}</span>
         </p>
         {{if .Quiz.Description}}
         <p class="quiz-description">{{.Quiz.Description}}</p>

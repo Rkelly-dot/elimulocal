@@ -16,7 +16,7 @@
             </a>
             <div class="nav-links">
                 {{if .LoggedIn}}
-                    <span class="nav-user">👤 {{.CurrentUser.Username}}</span>
+                    <span class="nav-user meta-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="#6b7280" stroke-width="1.2" fill="none"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>{{.CurrentUser.Username}}</span>
                     <a href="/quizzes" class="nav-link">Quizzes</a>
                     <a href="/quiz/create" class="nav-btn">Create Quiz</a>
                     <a href="/upload" class="nav-btn">+ Share resources</a>
