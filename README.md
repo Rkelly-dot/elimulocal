@@ -272,7 +272,7 @@ S3-compatible so switching later requires changing only environment variables,
 not code.
 
 **Why Render and not AWS or DigitalOcean?**
-Koyeb's free tier requires no credit card. For a project in early growth
+Render's free tier requires no credit card. For a project in early growth
 stage, zero infrastructure cost matters. The app can migrate to any Docker-
 compatible host later with no code changes.
 
